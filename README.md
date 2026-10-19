@@ -22,10 +22,8 @@ AI writes code faster than anyone can review it. So we skim, we trust, and the b
 /devflow:run add a status endpoint for orders
 ```
 
-```text
-◆ devflow  Order status endpoint   LIGHT  review deep   plan ━━ implement ━━ ◉ review › verify ┄┄ summary ┄┄ finish
- ⏸ WAITING FOR YOU   decision on F1
-```
+<img src="assets/band.png" alt="The devflow band above the Claude Code prompt: task title, LIGHT tier, deep review, the phase rail with review at the fix step, and a yellow WAITING FOR YOU banner for a decision on finding F1" width="100%">
+<sub>The band above the prompt, recreated from the mod's rendering code with example data.</sub>
 
 ## Why devflow
 
@@ -138,6 +136,8 @@ flowchart LR
     S --> F([Finish<br/><sub>your project's steps</sub>])
 ```
 
+<img src="assets/life-of-a-task.png" alt="Figure A, the life of a devflow task: Plan, Build, Review and Finish stages, each step marked as automated, decided by you, or guarded" width="100%">
+
 The **coordinator** (your main Claude session) keeps the conversation and the big picture. **Subagents** do the heavy reading and writing in their own context, so your session stays sharp on long tasks.
 
 | Agent | Model | Job |
@@ -164,7 +164,7 @@ If a "light" task turns out bigger, devflow says so out loud (`light → full: t
 
 ### The plan you approve
 
-You get a brief, not a document:
+You get a brief, not a document (example):
 
 ```text
 **Order status endpoint** · Tier: light · review: deep
@@ -195,19 +195,16 @@ flowchart LR
 
 - **Real issues only.** A finding needs a reachable failure scenario and evidence. Style, taste and hypotheticals are dropped, and "no findings" is the expected result for a sound change.
 - **Your project's checks first.** Tests, lint, type checks and project validators (an OpenAPI check, say) are discovered and run. What a script can prove, the reviewer doesn't guess.
-- **Readable findings**, numbered and ranked by severity:
+- **Readable findings**, numbered and ranked by severity, each with what it breaks today:
 
-```text
-F1 [high · needs-you]  src/client/api.js:4
-Problem:          the new handler returns { message } instead of the project's error shape
-When it happens:  GET /orders/unknown → 404 { message } → client reads body.error.code
-What it breaks:   the order page crashes instead of showing "not found" (src/pages/order.vue:31)
-Recommended fix:  return through respondError(), like the users and products handlers
-Evidence:         src/handlers/users.js:7, src/handlers/products.js:7, src/client/api.js:4
-```
+<p align="center"><img src="assets/finding.png" alt="Example finding F1, high severity, needs you: problem, when it happens, what it breaks, recommended fix, alternatives and evidence with file and line references" width="620"></p>
+
+<img src="assets/review-funnel.png" alt="Example review round: six candidates, two confirmed, three refuted by the verifiers with the reason, one unsettled, turned into findings F1 needs you, F2 fixed and F3 look at" width="100%">
 
 - **Bounded.** At most two rounds, and round 2 looks only at the fixes. If something serious survives that, devflow tells you the approach is probably the problem, instead of looping forever.
 - **It learns your project.** It proposes `REVIEW.md` entries for risk paths, checks and conventions it actually ran into.
+
+<img src="assets/layers.png" alt="Figure B, an illustration of where problems stop: seven layers from plan and builder check to round 2, each stopping some defects, with verifiers also stopping false alarms" width="100%">
 
 Works on its own too: `/devflow:review` reviews your uncommitted work, or `/devflow:review main` everything since `main`.
 
@@ -215,26 +212,8 @@ Works on its own too: `/devflow:review` reviews your uncommitted work, or `/devf
 
 devflow ships a Claude Code mod, so you can watch the flow instead of guessing:
 
-```text
-── FLOW ─────────────────────────────────────────
- ✓ plan       approved
- ┃
- ✓ implement  1/1 parts
- ┃
- ◉ review
- ┃   ✓ packet
- ┃   ✓ find
- ┃   ▸ verify
- ┊
- ○ summary
-── AGENTS ──────────────────────────── 1 running
- ● verifier       ·········██████████▶   1m12
-   ↳ tracing callers of respondError
-── REVIEW FUNNEL ────────────────────────────────
- candidates  ████████████████████████   3
- confirmed   ████████                   1
- refuted     ████████                   1
-```
+<p align="center"><img src="assets/panel.png" alt="The devflow panel mid-review with example data: session model, effort, cost, context and rate limits; the flow map at review, fix step; one part done; agent timeline lanes; the review funnel; findings by severity; blast radius; checks; an open assumption" width="460"></p>
+<p align="center"><sub>Recreated from the mod's rendering code, with example data.</sub></p>
 
 - A **band above the prompt** with the phase rail and a loud **WAITING FOR YOU** when a decision is yours, plus a toast.
 - A **panel** with a subway-style flow map, a timeline lane per agent, the live review funnel, findings by severity, the blast radius, checks and open assumptions.

@@ -1,10 +1,17 @@
 {
   "name": "devflow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Plan, implement and review changes with subagents, scaled to the size and risk of the task",
-  "author": { "name": "robo311" },
+  "author": {
+    "name": "robo311"
+  },
   "license": "MIT",
-  "keywords": ["workflow", "planning", "code-review", "subagents"],
+  "keywords": [
+    "workflow",
+    "planning",
+    "code-review",
+    "subagents"
+  ],
   "types": "./types/index.d.ts",
   "userConfig": {
     "narration": {

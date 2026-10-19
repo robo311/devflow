@@ -2,6 +2,16 @@
 
 All notable changes to devflow. Versions follow the `version` in `.claude-plugin/plugin.json`; Claude Code offers an update when it changes.
 
+## 0.1.1
+
+- Implementers end their run only after writing a report (`DONE`, `BLOCKED` or `PARTIAL`); a missing report counts as `PARTIAL`, and a part is re-dispatched at most twice for the same reason before it comes to the developer.
+- A check that failed to start is reported as such and never counts as a pass.
+- Review: a finder reply without `CANDIDATES:` or a verifier reply missing a verdict is continued once instead of being read as "no findings"; anything still unverified is reported as `look-at`.
+- The explorer answers every question before returning; what it cannot settle goes under `Not found`.
+- `run` states in one line what each phase will do and what came out of it.
+- Agent narration: a larger token budget so Haiku's thinking cannot leave the label empty; empty replies keep the previous label.
+- README: screenshots of the band, panel, figures and an example finding replace the text mockups.
+
 ## 0.1.0
 
 First public release.

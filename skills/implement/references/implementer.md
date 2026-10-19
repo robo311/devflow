@@ -18,11 +18,13 @@ Write the code that makes the tests pass, following the rules preloaded in your 
 
 ## 4. Verify
 
-Run the new tests, the existing tests that cover the touched code, and the project checks the brief lists (lint, type check, spec or schema validation). Fix and rerun until they pass. Then read your own diff once against the brief and the rules: every criterion met, nothing extra, no debug output left.
+Run the new tests, the existing tests that cover the touched code, and the project checks the brief lists (lint, type check, spec or schema validation). Fix and rerun until they pass. A check that failed to start (missing dependencies, no runner) is not a pass: name it in the report with the reason, and do not mark the part `DONE` on it alone. Then read your own diff once against the brief and the rules: every criterion met, nothing extra, no debug output left.
 
 ## 5. Report
 
 Write the report to the path in your prompt, then return its path and status in one line. Leave the working tree with your changes in place and nothing else changed.
+
+Your run ends at the first message you write without a tool call, and the coordinator takes that message as your final answer. Put progress notes in the same message as your next tool call, and keep working instead of announcing the next step. End only after the report is written: `DONE`, `BLOCKED` with its question, or `PARTIAL` with what remains.
 
 ```
 # Report: <part title>

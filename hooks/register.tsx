@@ -143,14 +143,15 @@ async function narrate($: EngineInterface) {
     const reply = await $.model.complete({
       model: 'haiku',
       effort: 'low',
-      maxTokens: 40,
+      // Haiku thinks by default and its thinking counts toward this cap; the reply is trimmed below.
+      maxTokens: 300,
       timeoutMs: 8000,
       system: 'You narrate coding agents for a progress display. Reply with one short present-tense phrase, at most 9 words, no period.',
       prompt: `Agent role: ${roleOf(agent.type)}\nTask: ${agent.label}\nMost recent actions, oldest first:\n${agent.recent.join('\n')}\n\nWhat is it doing right now?`,
     })
     if (reply.isAnswered) {
-      const text = reply.text.trim().split('\n')[0]?.slice(0, 80) ?? ''
-      await update($, agents, rows => rows.map(row => (row.id === agent.id ? { ...row, narration: text } : row)))
+      const text = reply.text.trim().split('\n')[0]?.trim().slice(0, 80) ?? ''
+      if (text) await update($, agents, rows => rows.map(row => (row.id === agent.id ? { ...row, narration: text } : row)))
     }
   }
 }

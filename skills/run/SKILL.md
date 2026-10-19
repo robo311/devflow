@@ -20,6 +20,7 @@ References:
 - You may fix something small yourself when it needs no further code reading (a few lines in one file already in your context). Record it in `state.json` and the summary; a change after review goes through the review's round 2 or is listed as not re-reviewed.
 - Every guess is tagged `[my call]` or `ASSUMPTION`, in plans, briefs and summaries alike.
 - Version control is the developer's: the run ends before any commit, branch or push.
+- At the start of each phase, say in one line what it will do; when it ends, one line on what came out.
 
 ## 0. Resume
 

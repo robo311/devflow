@@ -55,7 +55,7 @@ A `--depth` argument raises the result, never lowers it. Record the depth and it
 
 ## 4. Find
 
-Dispatch the `devflow:finder` agent with the packet path and the round (`1`). At `deep`, dispatch a second finder in parallel with `focus: security`. Save what they return to `candidates-r1.md`.
+Dispatch the `devflow:finder` agent with the packet path and the round (`1`). At `deep`, dispatch a second finder in parallel with `focus: security`. Save what they return to `candidates-r1.md`. A finder reply without a `CANDIDATES:` line is unfinished, not empty: continue that finder once, and if it still has none, record the gap in the report.
 
 No candidates: skip step 5 (and go straight to step 8 when there are no implementer suggestions either).
 
@@ -68,6 +68,8 @@ Every candidate goes to the `devflow:verifier` agent, which tries to refute it. 
 - `deep`, extra: a candidate a verifier confirms with action `needs-you` gets a second, independent verifier that does not see the first verdict. Both confirm: keep it. They split: keep it as `look-at` with both arguments. Both refute: drop it.
 
 Verdicts: `CONFIRMED` (with the finished finding), `REFUTED` (with the reason), `UNSETTLED` (with the check that would settle it, which becomes a `look-at`).
+
+A verifier reply that leaves a candidate without a verdict is unfinished: continue that verifier once for the missing ones, and report any candidate still without a verdict as `look-at` with "not verified".
 
 Done when every candidate has a verdict.
 

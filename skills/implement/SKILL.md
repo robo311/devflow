@@ -55,6 +55,9 @@ When a report comes back:
 - `DONE`: check that its acceptance criteria are each backed by a test or a check, and that its `Contract` matches what dependent parts expect. Then continue.
 - `BLOCKED`: answer the question from the plan or the project when they settle it; otherwise ask the developer. Re-dispatch the part with the answer added to its brief.
 - `PARTIAL`: re-dispatch with the report, so the implementer continues where it stopped.
+- No report file, or no `Status:` line in it: treat it as `PARTIAL`.
+
+Re-dispatch a part at most twice for the same reason. After that, mark it `blocked` in `state.json` and bring it to the developer with what is missing.
 
 After each part, re-check the tier (`tiers.md`): a change that grows past the plan, touches a risk path, or turns up an open decision is raised out loud before the next part starts.
 

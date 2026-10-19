@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: review-theoretical
+description: Reads order.customer.email without a null check, but every order is validated on load, so the crash cannot happen.
+expected_outcome: "Findings: 0; no null-check finding."
+tags: [review, noise]
+context:
+  scaffold_script: fixture.sh

@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: plan-clear-light
+description: A fully specified small endpoint following an existing pattern needs no questions and a short plan.
+expected_outcome: "Tier light, no questions, .flow/<slug>/plan.md written."
+tags: [plan, noise]
+context:
+  scaffold_script: fixture.sh

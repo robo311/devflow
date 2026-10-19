@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: implement-light
+description: Build an approved light plan (one backend part) following the project's error convention, tests first.
+expected_outcome: New route and handler using respondError, a test, npm test run, built by implementer-be.
+tags: [implement]
+context:
+  scaffold_script: fixture.sh

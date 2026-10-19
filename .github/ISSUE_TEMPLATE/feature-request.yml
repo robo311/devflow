@@ -1,0 +1,20 @@
+name: Idea or feature request
+description: Something devflow should do, or do better
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: The situation where devflow falls short today. A real example helps most.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you'd like
+  - type: textarea
+    id: stack
+    attributes:
+      label: Your stack
+      description: Language, framework and project type, if the idea is stack-specific.

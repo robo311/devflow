@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: review-planted-bug
+description: Pagination helper treats 1-based pages as 0-based, so page 1 skips the first page of orders.
+expected_outcome: One high or critical finding on src/paginate.js; Findings >= 1.
+tags: [review]
+context:
+  scaffold_script: fixture.sh

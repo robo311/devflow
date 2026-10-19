@@ -1,0 +1,38 @@
+name: Review was wrong
+description: The review reported something that wasn't a real problem, or missed one that was
+labels: ["review-quality"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What went wrong
+      options:
+        - It reported a finding that isn't real (false positive)
+        - It missed a real defect (false negative)
+        - The severity or action was wrong
+    validations:
+      required: true
+  - type: textarea
+    id: finding
+    attributes:
+      label: The finding, or the missed defect
+      description: Paste the finding as devflow reported it, or describe the defect it missed.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it was wrong
+      description: What in the code shows the finding is not reachable, or what the missed defect breaks.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Smallest reproduction
+      description: A minimal diff or snippet, if you can share one. It can become an eval case.
+  - type: input
+    id: version
+    attributes:
+      label: devflow and Claude Code versions
+      placeholder: devflow 0.1.0, Claude Code 2.1.303

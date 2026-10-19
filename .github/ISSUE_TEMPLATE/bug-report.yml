@@ -1,0 +1,37 @@
+name: Bug report
+description: Something in the flow, a skill or the live panel doesn't work
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what devflow did instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - run (the whole flow)
+        - plan
+        - implement
+        - review
+        - summary
+        - live panel / band
+        - installation or update
+    validations:
+      required: true
+  - type: textarea
+    id: state
+    attributes:
+      label: Relevant files
+      description: The `.flow/<task>/state.json` or the part of a plan or report that shows the problem, with anything private removed.
+  - type: input
+    id: version
+    attributes:
+      label: devflow and Claude Code versions
+      placeholder: devflow 0.1.0, Claude Code 2.1.303
+    validations:
+      required: true

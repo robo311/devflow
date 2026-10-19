@@ -1,0 +1,17 @@
+{
+  "name": "devflow",
+  "version": "0.1.0",
+  "description": "Plan, implement and review changes with subagents, scaled to the size and risk of the task",
+  "author": { "name": "robo311" },
+  "license": "MIT",
+  "keywords": ["workflow", "planning", "code-review", "subagents"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "narration": {
+      "type": "boolean",
+      "title": "Agent narration",
+      "description": "While the devflow pane is open, a short Haiku call every few seconds describes what each running agent is doing",
+      "default": true
+    }
+  }
+}

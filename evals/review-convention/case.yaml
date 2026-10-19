@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: review-convention
+description: New handler builds its error JSON by hand instead of respondError(), breaking the error shape the client reads.
+expected_outcome: A finding on src/handlers/orders.js citing respondError examples; Findings >= 1.
+tags: [review]
+context:
+  scaffold_script: fixture.sh

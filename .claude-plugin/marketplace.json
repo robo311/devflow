@@ -1,0 +1,12 @@
+{
+  "name": "devflow",
+  "owner": { "name": "robo311" },
+  "description": "devflow: a planning, implementation and review workflow for Claude Code",
+  "plugins": [
+    {
+      "name": "devflow",
+      "source": "./",
+      "description": "Plan, implement and review changes with subagents, scaled to the size and risk of the task"
+    }
+  ]
+}

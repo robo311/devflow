@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: plan-trivial
+description: A typo fix needs no questions and no plan file.
+expected_outcome: "Tier trivial, no questions, no .flow plan."
+tags: [plan, noise]
+context:
+  scaffold_script: fixture.sh

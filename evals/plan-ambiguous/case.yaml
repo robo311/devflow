@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: plan-ambiguous
+description: "\"Add discounts\" leaves the core decisions open; the plan must ask about them and build nothing."
+expected_outcome: Questions about what a discount is, each with a recommended answer; no code written.
+tags: [plan]
+context:
+  scaffold_script: fixture.sh

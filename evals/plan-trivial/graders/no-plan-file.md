@@ -1,0 +1,5 @@
+---
+type: file_exists
+path: '.flow/**/plan.md'
+exists: false
+---

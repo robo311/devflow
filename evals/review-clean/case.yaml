@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: review-clean
+description: A correct, tested price formatter used in one place. Nothing to report.
+expected_outcome: "Findings: 0, no style suggestions presented as problems."
+tags: [review, noise]
+context:
+  scaffold_script: fixture.sh

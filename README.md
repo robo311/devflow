@@ -89,7 +89,7 @@ What happens next:
 1. **Plan.** devflow reads your `CLAUDE.md`, docs and the relevant code, picks a tier, and asks you only what it can't find out itself, with a recommended answer for each question. You get a short brief and one question: **Implement?**
 2. **Implement.** Subagents build the plan part by part, backend before frontend, tests first, following your project's conventions. You only hear from them if something blocks.
 3. **Review.** The change is reviewed, verified and triaged. Obvious fixes are applied, and you decide the rest with one click per finding.
-4. **Summary.** What changed and why, behaviour before → after, the 3–5 spots worth reading, and anything still open.
+4. **Summary.** What changed and why, behaviour before → after, the 3–5 spots worth reading, and anything still open. Plus a short `changelog.md` in plain words for whoever raised the task.
 5. **Finish.** Your project's own finishing steps (docs, changelog) if it has any. Then it asks whether the task is truly done and what to keep from `.flow/`.
 
 A typo fix skips all of this: devflow just makes the change, runs your checks and tells you in two lines.
@@ -100,7 +100,7 @@ Each phase also works on its own:
 |---|---|
 | `/devflow:run <task>` | The whole flow: plan → implement → review → summary → finish |
 | `/devflow:run --resume [slug]` | Continue a task where it stopped (after a restart or a long break) |
-| `/devflow:plan <task>` | Plan only, ending with "Implement?" (`--tier` to force a tier) |
+| `/devflow:plan <task>` | Plan, then ask: implement now, discuss it first, or keep it for later (`--tier` to force a tier) |
 | `/devflow:implement <slug>` | Build an approved plan from `.flow/<slug>/` (`--no-review` to skip the review) |
 | `/devflow:review` | Review your uncommitted work, untracked files included |
 | `/devflow:review main` | Review everything that differs from `main` (any branch or commit works) |
@@ -116,7 +116,7 @@ Each phase also works on its own:
 | **`plan`** | yes | Grounds itself in your docs and code, maps the blast radius, sizes the task, asks decisions in rounds with recommended answers, writes `.flow/<slug>/plan.md` with parts sized to the work and a task checklist for each, runs a builder check on `full` plans, and shows you a brief instead of the document. For a new project it proposes the foundation. |
 | **`implement`** | yes | Decides how many implementers the parts need (small parts share one), writes their briefs, picks `implementer-be`, `implementer-fe` or `implementer`, runs independent parts in parallel, checks every report (DONE / BLOCKED / PARTIAL) and that every task in the plan is ticked, makes sure the parts fit together, then hands over to review. |
 | **`review`** | yes | Builds one packet (diff, intent, docs, project check results, risk paths, convention examples), dispatches the finder and verifiers, triages findings by severity and action, applies auto-fixes, asks you about the rest and about implementer suggestions, runs a fix-only round 2, and proposes `REVIEW.md` entries. |
-| **`summary`** | rarely | The end-of-task report: changes and why, behaviour now, worth a look, open findings, unverified assumptions, suggestions for later. |
+| **`summary`** | rarely | The end-of-task report: changes and why, behaviour now, worth a look, open findings, unverified assumptions, suggestions for later. Also writes `changelog.md`, a plain-language version for whoever raised the task, ready to paste into the issue. |
 | **`code-rules`** | no | The rules every implementer follows: priority order, architecture, conventions, reuse, structure, comments that explain *why*, scope, errors, tests first, verification. |
 | **`fe-rules`** | no | Frontend additions: follow the existing design, state and data flow, loading/error/empty states, API types, forms, accessibility, `Intl` formatting, media, SEO for public pages, client-side security. |
 | **`be-rules`** | no | Backend additions: follow the existing architecture, input validation, authorization, transactions, safe migrations, API contracts (and their specs), logging, queries, external calls, jobs. |
@@ -136,7 +136,7 @@ flowchart LR
     S --> F([Finish<br/><sub>your project's steps</sub>])
 ```
 
-<img src="assets/life-of-a-task.png" alt="Figure A, the life of a devflow task: Plan, Build, Review and Finish stages, each step marked as automated, decided by you, or guarded" width="100%">
+<img src="assets/life-of-a-task.png" alt="The four steps of a devflow task: Plan, Implement, Review and Summary, each item marked as automated, decided by you, or a safety rule" width="100%">
 
 The **coordinator** (your main Claude session) keeps the conversation and the big picture. **Subagents** do the heavy reading and writing in their own context, so your session stays sharp on long tasks.
 
@@ -238,7 +238,7 @@ Rules apply where they make sense: no public pages means no SEO rules, and the s
 
 - Commit, create branches or push. Version control stays yours.
 - Change code outside the task without your approval. Ideas become suggestions, with a verdict on whether they're worth it.
-- Delete its working notes (`.flow/`) without asking. At the end it offers to keep the important files (plan, summary, review report), delete everything, or keep everything.
+- Delete its working notes (`.flow/`) without asking. At the end it offers to keep your files (plan, review, summary, changelog) and delete the agents' working files, delete everything, or keep everything.
 - Hide a guess. Every assumption is labelled.
 
 `.flow/` is added to `.git/info/exclude`, so it never ends up in your repository by accident.

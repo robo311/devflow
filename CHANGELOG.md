@@ -2,6 +2,28 @@
 
 All notable changes to devflow. Versions follow the `version` in `.claude-plugin/plugin.json`; Claude Code offers an update when it changes.
 
+## 0.2.1
+
+- Follow-ups: a fix or addition asked for after the summary (during finish or at the clean-up question) is recorded in `state.json` and shows in the live view as a step under finish (`follow-up 2 · Sort the list by date`, with a `1/2 follow-ups` count). Small ones the coordinator makes, bigger ones go to an implementer, new work is offered as a new task; each lands in `summary.md` and `changelog.md` under Follow-ups, marked not reviewed.
+- Task files are split by reader: what the developer reads (`plan.md`, `review.md`, `summary.md`, `changelog.md`) sits at the top of `.flow/<slug>/`; the agents' working files (`state.json`, `implementer-<n>-brief.md` and `-report.md`, the review's packet, diffs, candidates and snapshots) sit in `agents/`. Clean-up keeps the top and deletes `agents/`. The live view and `run --resume` still find tasks in the old layout.
+- Decision batches start with a choice of how to go through them: findings that need you can be decided one by one, all left open, or talked through first; implementer suggestions can be decided one by one, skipped all at once (kept as Later) or talked through first.
+- Implementer suggestions come with their context: the review first lists each one in the conversation (what, where, who noticed it, why, cost, the finder's verdict and recommendation), then asks per suggestion: Apply now, Later or Drop. Implementer reports give every suggestion its location, reason and size.
+- `summary` also writes `.flow/<slug>/changelog.md`: what changed, what is different, how to check it and what is still open, in plain words for whoever raised the task, ready to paste into the issue. The clean-up keeps it with the other important files.
+- Live view: "waiting for you" now follows what the session is doing. It shows while a question is open or Claude has stopped to ask, and gives way to "working" once you answered, even if `state.json` still says otherwise.
+- A devflow agent working in the background counts as working: the band no longer says "waiting for you" while Claude's own turn has ended but its explorers or plan-checker still run.
+- The band is set apart from Claude's spinner by a blank line and draws in devflow's own colours (yellow mark and current step, teal "working").
+- The band is three short lines: the task, the steps with the current one marked, and either "waiting for you" or "working" with the running agents.
+- The `main` row says "waiting on plan-checker" (or whichever agents run) while Claude's own turn has ended and its subagents work in the background, instead of "waiting for you"; agent entries have a blank line between them.
+- The agents section lists the main session first, marked `main`, and labels every agent "running 45s" or "done in 2m" over a time axis.
+- Long assumptions and escalations wrap instead of being cut off.
+- `plan` ends with three choices: Implement (builds it right away), Discuss it first, or Keep it for later. Choosing Implement on a standalone plan now starts the build instead of stopping at "approved".
+- The flow no longer stalls after `implement`: Implement on a standalone plan, or a directly started `implement`, continues through review, summary and clean-up via `run --resume`, which now picks up after a finished phase.
+- A task that changed no code records its review as skipped; the live view shows it struck through instead of pending.
+- The live view finds a task whose `.flow/` lives in another repository than the one the session started in (a plan written in the frontend repo from a backend session): any tool call that touches that `.flow/` adds the project to the folders the mod watches.
+- The live view shows a task from its first second: `plan` writes `state.json` before it reads the project (and removes it again for a trivial task), instead of only after sizing.
+- When a terminal is too narrow for the panel to open on its own (under 144 columns), a toast says `/devflow-status` opens it.
+- Live view: a flow that stopped part-way says so, names the next step and the command that continues it; sub-steps read in plain words (`integrate` is "final checks") with a hint for the current one, in a tree under their phase.
+
 ## 0.2.0
 
 - Plans size parts by the work: related changes in one layer stay in one part, and a change of a few lines is never a part of its own. The plan-checker flags parts split too fine or too large.

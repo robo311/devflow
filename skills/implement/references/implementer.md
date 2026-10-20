@@ -55,5 +55,6 @@ Only for a part others build on: the final shape of what it exposes (endpoint, r
 Only when BLOCKED: the question and what each answer would change.
 
 ## Suggestions
-Improvements to surrounding code you noticed and left alone.
+Changes outside the brief you noticed and left alone, one entry each, so someone who never saw the code can judge it:
+- <the change in one line> (`path:line`): <what is wrong or could be better now>; <what changing it would buy>; about <size>
 ```

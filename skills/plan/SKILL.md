@@ -18,6 +18,8 @@ References, read when the step names them:
 
 Learn what the request and the project already settle before asking anything.
 
+First, so the live view shows the task from its start: pick `<slug>`, a short kebab-case name for the task, create `.flow/<slug>/` with the layout `${CLAUDE_PLUGIN_ROOT}/skills/run/references/state.md` describes, make sure `.flow/` is listed in `.git/info/exclude` (add it when missing), and write `agents/state.json` with `title`, `phase: plan` and `step: ground`.
+
 1. Read the project's own guidance: `CLAUDE.md` / `AGENTS.md` (root and the areas the task touches), `REVIEW.md`, README, and `docs/` files related to the task.
 2. Find the facts the plan rests on: where the affected code lives, how similar features are built, which contracts, schemas, specs and tests are involved. Facts are your job, never the developer's. For anything beyond a few direct lookups, dispatch `devflow:explorer` with concrete questions, several in parallel for separate areas, and keep their summaries.
 
@@ -30,8 +32,8 @@ Done when you can name the files or areas the task touches, the existing code it
 
 Pick the tier and review depth with `tiers.md` and announce them in one line. A `--tier` argument sets the tier; the review depth still follows risk.
 
-- `trivial`: say in one line what you will change and stop planning. When the `run` skill called you, hand back to it; otherwise tell the developer the task needs no plan.
-- `light` and `full`: pick `<slug>`, a short kebab-case name for the task, create `.flow/<slug>/`, make sure `.flow/` is listed in `.git/info/exclude` (add it when missing), and write `state.json` as `${CLAUDE_PLUGIN_ROOT}/skills/run/references/state.md` describes. Update it at the points listed there. Continue.
+- `trivial`: delete the `.flow/<slug>/` folder you created in step 1, and `.flow/` when it is left empty; a trivial task leaves no files. Say in one line what you will change and stop planning. When the `run` skill called you, hand back to it; otherwise tell the developer the task needs no plan.
+- `light` and `full`: add the tier and review depth to `state.json` and keep it current at the points `state.md` lists. Continue.
 
 ## 3. Decide
 
@@ -68,12 +70,20 @@ Update the plan with the answers. The builder check runs once.
 
 ## 7. Approve
 
-Show the brief from `plan-format.md` in the conversation, not the whole plan, and ask whether to implement it, at every tier above `trivial`: "Implement" as the recommended option, "Change something" beside it, and room to answer freely. Apply changes and ask again until the developer chooses to implement. Without that answer, nothing is built.
+Show the brief from `plan-format.md` in the conversation, not the whole plan, and ask what happens next, at every tier above `trivial`, with these options:
+
+- **Implement** (recommended): the plan is approved and gets built now.
+- **Discuss it first**: the developer wants to read the plan or talk it through. Answer their questions, apply the changes they ask for, and ask again.
+- **Keep it for later**: the plan is approved and stays in `.flow/<slug>/` for `/devflow:implement <slug>`; nothing is built now.
+
+Without one of these answers, nothing is built.
 
 `full`: nothing gets built before approval. Building includes writing product code, scaffolding, installing dependencies and running generators. Reading and exploring are fine.
 
-Done when the developer approved the plan. Add `Status: approved` under its title.
+Done when the developer chose Implement or Keep it for later. Add `Status: approved` under the plan's title, and set `waitingFor` back to `null` in `state.json`.
 
 ## 8. Hand off
 
-When the `run` skill called you, hand back to it with the plan's path. Otherwise tell the developer where the plan is and that `/devflow:implement <slug>` builds it.
+- The `run` skill called you: hand back to it with the plan's path and the developer's choice; it builds the plan, or stops for Keep it for later.
+- The developer chose **Implement**: invoke the `run` skill with `--resume <slug>` now, in this turn. It builds, reviews, summarises and tidies up, so the whole flow finishes. Choosing Implement means building starts; never stop at "the plan is approved".
+- The developer chose **Keep it for later**: tell them where the plan is and that `/devflow:implement <slug>` builds it.

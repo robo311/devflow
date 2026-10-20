@@ -5,18 +5,25 @@ import type { AgentRow, FlowState, FlowView, SessionInfo } from '../types'
 import {
   COLORS,
   PHASES,
+  activity,
+  agentStatus,
   ago,
   barCells,
   currentSteps,
   describeCall,
   encodeCells,
+  flowRootsIn,
   hex,
   laneCells,
   loadColor,
+  mainStatus,
+  nextPhase,
   phaseMark,
   roleColor,
   roleOf,
   scaled,
+  stepHint,
+  stepLabel,
   tokens,
   windowLabel,
   type Cell,
@@ -32,24 +39,41 @@ const flow = atom({ plugin: 'devflow', key: 'flow' } as const, null)
 const agents = atom({ plugin: 'devflow', key: 'agents' } as const, [])
 const now = atom({ plugin: 'devflow', key: 'now' } as const, 0)
 const session = atom({ plugin: 'devflow', key: 'session' } as const, null)
+const main = atom({ plugin: 'devflow', key: 'main' } as const, { isWorking: false, isAsking: false })
+const roots = atom({ plugin: 'devflow', key: 'roots' } as const, [])
 
 const SEVERITIES = ['critical', 'high', 'medium', 'low'] as const
-const RAIL_COLOR: Record<Mark, string> = { done: 'success', current: 'claude', pending: 'inactive' }
+// the band sits right under Claude's own orange spinner, so devflow draws in colours of its own
+const ACCENT = '#ffc629'
+const WORKING = hex(COLORS.explorer)
+const RAIL_COLOR: Record<Mark, string> = { done: 'success', current: 'claude', pending: 'inactive', skipped: 'inactive' }
 const TIER_COLOR: Record<string, number> = { trivial: COLORS.other, light: COLORS.explorer, full: COLORS.implement }
 const PART_GLYPH: Record<string, string> = { done: '✓', blocked: '✗', partial: '◐', pending: '○', running: '▸' }
 const PART_COLOR: Record<string, string> = { done: 'success', blocked: 'error', partial: 'warning', pending: 'inactive', running: 'claude' }
+const RAIL_GLYPH: Record<Mark, string> = { done: '✓ ', current: '◉ ', pending: '○ ', skipped: '– ' }
 
-async function findFlow($: EngineInterface): Promise<{ path: string; mtimeMs: number } | null> {
-  if (!(await $.fs.exists('.flow'))) return null
+/** Nothing runs and nobody is asked, yet the task is not finished: the flow stopped part-way. */
+function isStopped(state: FlowState, doing: string, runningCount: number): boolean {
+  return doing === 'idle' && runningCount === 0 && state.phase !== undefined && state.phase !== 'done'
+}
+
+/** A task's state file: `agents/state.json`, or `state.json` at the top in a task from before 0.2.1. */
+const stateFiles = (folder: string) => [`${folder}/agents/state.json`, `${folder}/state.json`]
+
+/** The newest task state in the session's `.flow/` and in any other project's `.flow/` devflow worked in. */
+async function findFlow($: EngineInterface, elsewhere: string[]): Promise<{ path: string; mtimeMs: number } | null> {
   const candidates: string[] = []
-  for (const entry of await $.fs.list('.flow')) {
-    if (entry.kind !== 'dir') continue
-    if (entry.name === 'reviews') {
-      for (const review of await $.fs.list('.flow/reviews')) {
-        if (review.kind === 'dir') candidates.push(`.flow/reviews/${review.name}/state.json`)
+  for (const base of ['.flow', ...elsewhere.map(root => `${root}/.flow`)]) {
+    if (!(await $.fs.exists(base).catch(() => false))) continue
+    for (const entry of await $.fs.list(base).catch(() => [])) {
+      if (entry.kind !== 'dir') continue
+      if (entry.name === 'reviews') {
+        for (const review of await $.fs.list(`${base}/reviews`).catch(() => [])) {
+          if (review.kind === 'dir') candidates.push(...stateFiles(`${base}/reviews/${review.name}`))
+        }
+      } else {
+        candidates.push(...stateFiles(`${base}/${entry.name}`))
       }
-    } else {
-      candidates.push(`.flow/${entry.name}/state.json`)
     }
   }
   let newest: { path: string; mtimeMs: number } | null = null
@@ -73,7 +97,7 @@ const narratedCount = new Map<string, number>()
 
 async function poll($: EngineInterface) {
   const at = await $.clock.now()
-  const found = await findFlow($).catch(() => null)
+  const found = await findFlow($, await read($, roots)).catch(() => null)
   const held = await read($, flow)
 
   if (!found) {
@@ -95,7 +119,10 @@ async function poll($: EngineInterface) {
       const key = state.task ?? found.path
       if (openedFor !== key && isActive(view, at)) {
         openedFor = key
-        void $.ui.open({ id: PANE, title: 'devflow' })
+        // a pane opened unasked waits undrawn on a narrow terminal; say how to open it instead
+        void $.ui.open({ id: PANE, title: 'devflow' }).then(opened => {
+          if (!opened.isPlaced) $.ui.toast('devflow: the live panel is ready. Type /devflow-status to open it.')
+        })
       }
     }
   }
@@ -177,7 +204,8 @@ export const register: Register = (on, options) => {
     const view = await read($, flow)
     if (!view) return { text: 'No devflow task found in .flow/ of this project.' }
     const s = view.state
-    const waiting = s.waitingFor ? ` · waiting for you: ${s.waitingFor}` : ''
+    const isAgentRunning = (await read($, agents)).some(agent => agent.endedAt === undefined)
+    const waiting = activity(s.waitingFor, { ...(await read($, main)), isAgentRunning }) === 'waiting' ? ` · waiting for you: ${s.waitingFor ?? 'your answer'}` : ''
 
     return { text: `devflow · ${s.title ?? s.task ?? view.path} · ${s.tier ?? '?'} · ${s.phase ?? '?'} › ${s.step ?? '-'}${waiting}` }
   })
@@ -204,6 +232,23 @@ export const register: Register = (on, options) => {
   }).catch(($, e, next) => next(e))
 
   on('tool.call', async ($, e, next) => {
+    // a task planned in another repository: watch that project's .flow/ too, and show it now
+    const touched = flowRootsIn(e as unknown as Record<string, unknown>)
+    const known = await read($, roots)
+    const added = touched.filter(root => !known.includes(root))
+    if (added.length > 0) {
+      await update($, roots, list => [...list, ...added])
+      void poll($)
+    }
+    // a question dialog on the main loop: the turn runs, but it waits for the developer
+    if (!e.agentId && e.tool === 'AskUserQuestion') {
+      await update($, main, state => ({ ...state, isAsking: true }))
+      try {
+        return await next(e)
+      } finally {
+        await update($, main, state => ({ ...state, isAsking: false }))
+      }
+    }
     if (e.agentId) {
       const id = e.agentId
       const action = describeCall(String(e.tool), e as unknown as Record<string, unknown>)
@@ -217,11 +262,23 @@ export const register: Register = (on, options) => {
     return next(e)
   }).catch(($, e, next) => next(e))
 
+  on('turn.start', async ($, e, next) => {
+    if (!e.agentId) {
+      const at = await $.clock.now()
+      await update($, main, () => ({ isWorking: true, isAsking: false, turnStartedAt: at }))
+    }
+
+    return next(e)
+  })
+
   on('turn.complete', async ($, e, next) => {
     if (e.agentId) {
       const id = e.agentId
       const at = await $.clock.now()
       await update($, agents, list => list.map(agent => (agent.id === id ? { ...agent, endedAt: at } : agent)))
+    } else {
+      const at = await $.clock.now()
+      await update($, main, state => ({ ...state, isWorking: false, isAsking: false, turnEndedAt: at }))
     }
 
     return next(e)
@@ -237,11 +294,15 @@ export const register: Register = (on, options) => {
 
     const { Box, Text } = $.ui.resolve(e)
     const s = view?.state ?? {}
+    const { isAsking } = await read($, main)
+    const doing = activity(hasFlow ? s.waitingFor : undefined, { isWorking: e.props.isWorking, isAsking, isAgentRunning: running.length > 0 })
+    const stopped = hasFlow && isStopped(s, doing, running.length)
+    const upcoming = nextPhase(s)
 
     return (
-      <Box flexDirection="column">
-        <Box>
-          <Text color="claude" bold>
+      <Box flexDirection="column" marginTop={1}>
+        <Text wrap="truncate-end">
+          <Text color={ACCENT} bold>
             ◆ devflow{'  '}
           </Text>
           {hasFlow && <Text bold>{s.title ?? s.task}</Text>}
@@ -253,35 +314,59 @@ export const register: Register = (on, options) => {
               </Text>
             </Text>
           )}
-          {hasFlow && s.reviewDepth && <Text dimColor>{` review ${s.reviewDepth}`}</Text>}
-          <Text>{'   '}</Text>
-          {hasFlow &&
-            PHASES.map((phase, i) => {
+          {hasFlow && s.reviewDepth && <Text dimColor>{`  review ${s.reviewDepth}`}</Text>}
+        </Text>
+        {hasFlow && (
+          <Text wrap="truncate-end">
+            {PHASES.map((phase, i) => {
               const mark = phaseMark(s, phase)
-              const rail = mark === 'pending' ? '┄┄' : '━━'
               return (
                 <Text>
-                  {i > 0 && <Text color={RAIL_COLOR[mark]}>{` ${rail} `}</Text>}
-                  <Text color={RAIL_COLOR[mark]} bold={mark === 'current'} dimColor={mark === 'pending'}>
-                    {mark === 'current' ? '◉ ' : ''}
+                  {i > 0 && <Text color={RAIL_COLOR[mark === 'pending' ? 'pending' : 'done']} dimColor={mark === 'pending'}>{' ── '}</Text>}
+                  <Text
+                    color={mark === 'current' ? (stopped ? 'warning' : ACCENT) : RAIL_COLOR[mark]}
+                    bold={mark === 'current'}
+                    dimColor={mark === 'pending' || mark === 'skipped'}
+                    strikethrough={mark === 'skipped'}
+                  >
+                    {mark === 'current' && stopped ? '⏸ ' : RAIL_GLYPH[mark]}
                     {phase}
-                    {mark === 'current' && s.step ? ` › ${s.step}` : ''}
+                    {mark === 'current' && s.step ? ` › ${stepLabel(s.step, s)}` : ''}
                   </Text>
                 </Text>
               )
             })}
-          {running.length > 0 && (
-            <Text dimColor>
-              {'   '}⚙ {running.length} agent{running.length > 1 ? 's' : ''}
-            </Text>
-          )}
-        </Box>
-        {hasFlow && s.waitingFor && (
-          <Text>
+          </Text>
+        )}
+        {doing === 'waiting' && (
+          <Text wrap="truncate-end">
             <Text backgroundColor={hex(COLORS.medium)} color="#0b0d10" bold>
               {' ⏸ WAITING FOR YOU '}
             </Text>
-            <Text color="warning" bold>{`  ${s.waitingFor}`}</Text>
+            <Text color="warning" bold>{`  ${s.waitingFor ?? 'your answer'}`}</Text>
+          </Text>
+        )}
+        {doing !== 'waiting' && running.length > 0 && (
+          <Text wrap="truncate-end">
+            <Text color={WORKING} bold>
+              {'● working'}
+            </Text>
+            <Text dimColor>{`  ·  ${running.map(agent => `${roleOf(agent.type)} ${ago(at - agent.startedAt)}`).join(' · ')}`}</Text>
+          </Text>
+        )}
+        {doing === 'working' && running.length === 0 && (
+          <Text color={WORKING} bold>
+            {'● working'}
+          </Text>
+        )}
+        {stopped && (
+          <Text wrap="truncate-end">
+            <Text color="warning" bold>
+              {'⏸ stopped'}
+            </Text>
+            <Text dimColor>{upcoming ? `  ·  next: ${upcoming}` : ''}</Text>
+            <Text dimColor>{'  ·  continue with '}</Text>
+            <Text bold>{`/devflow:run --resume ${s.task ?? ''}`.trim()}</Text>
           </Text>
         )}
       </Box>
@@ -328,20 +413,28 @@ export const register: Register = (on, options) => {
       </Text>
     )
 
+    // the lanes share one time axis, from the first agent's start to now
+    const timeAxis = (
+      <Text dimColor>
+        {' '.repeat(17)}
+        {barWidth >= 18 ? `◂ first start${'now ▸'.padStart(barWidth - 13)}` : ''}
+      </Text>
+    )
     const agentRows = (rows: AgentRow[], from: number) =>
       rows.map(agent => {
-        const isRunning = agent.endedAt === undefined
+        const status = agentStatus(agent, at)
+        const isRunning = status.isRunning
         const color = hex(roleColor(agent.type))
         const line = isRunning ? agent.narration ?? agent.recent.at(-1) ?? agent.label : `${agent.label} · ${agent.tools} tool calls`
         return (
           <Box flexDirection="column">
             <Box>
-              <Text color={color}>{isRunning ? '● ' : '○ '}</Text>
+              <Text color={isRunning ? color : 'success'} bold>{isRunning ? '● ' : '✓ '}</Text>
               <Text bold={isRunning} dimColor={!isRunning}>
                 {roleOf(agent.type).slice(0, 14).padEnd(15)}
               </Text>
               {bar(`lane-${agent.id}`, laneCells(barWidth, from, at, agent.startedAt, agent.endedAt, roleColor(agent.type)))}
-              <Text dimColor>{` ${ago((agent.endedAt ?? at) - agent.startedAt).padStart(5)}`}</Text>
+              <Text color={isRunning ? 'claude' : undefined} dimColor={!isRunning} bold={isRunning}>{`  ${status.text}`}</Text>
             </Box>
             <Text dimColor italic={isRunning} wrap="truncate-end">
               {'  ↳ '}
@@ -350,6 +443,41 @@ export const register: Register = (on, options) => {
           </Box>
         )
       })
+
+    // the main session, the coordinator, drawn first and marked as main
+    const mainState = await read($, main)
+    const mainRow = (from: number, waitingFor?: string | null) => {
+      if (mainState.turnStartedAt === undefined) return null
+      const runningRoles = list.filter(agent => agent.endedAt === undefined).map(agent => roleOf(agent.type))
+      const { tone: doing, text: status } = mainStatus(waitingFor, mainState, runningRoles, at)
+      const ended = mainState.isWorking ? undefined : mainState.turnEndedAt
+      return (
+        <Box flexDirection="column">
+          <Box>
+            <Text color="claude" bold>
+              {'◆ '}
+            </Text>
+            <Text bold>{'main'.padEnd(15)}</Text>
+            {bar('lane-main', laneCells(barWidth, from, at, Math.max(from, mainState.turnStartedAt), ended, 0xd77757))}
+            <Text color={doing === 'waiting' ? 'warning' : doing === 'working' ? WORKING : undefined} dimColor={doing === 'idle'} bold={doing !== 'idle'}>
+              {`  ${status}`}
+            </Text>
+          </Box>
+          <Text dimColor wrap="truncate-end">
+            {'  ↳ your session, the coordinator'}
+          </Text>
+        </Box>
+      )
+    }
+
+    // the axis starts at the earliest of the shown agents and the main session's current turn
+    const timelineStart = (rows: AgentRow[]) =>
+      Math.min(...rows.map(agent => agent.startedAt), mainState.turnStartedAt ?? at, at)
+
+    const agentCounts = (rows: AgentRow[]) => {
+      const runningCount = rows.filter(agent => agent.endedAt === undefined).length
+      return `${runningCount} running · ${rows.length - runningCount} done`
+    }
 
     const info = await read($, session)
     const meter = (key: string, label: string, percent: number, note: string) => (
@@ -395,10 +523,14 @@ export const register: Register = (on, options) => {
             <Text dimColor>{'  no active task · start one with /devflow:run'}</Text>
           </Text>
           {sessionBlock}
-          {list.length > 0 && (
+          {(list.length > 0 || mainState.turnStartedAt !== undefined) && (
             <Box flexDirection="column">
-              {heading('Agents')}
-              {agentRows(list.slice(-8), Math.min(...list.slice(-8).map(agent => agent.startedAt), at))}
+              {heading('Agents', agentCounts(list.slice(-8)))}
+              {timeAxis}
+              <Box flexDirection="column" gap={1}>
+                {mainRow(timelineStart(list.slice(-8)))}
+                {agentRows(list.slice(-8), timelineStart(list.slice(-8)))}
+              </Box>
             </Box>
           )}
         </Box>
@@ -406,11 +538,15 @@ export const register: Register = (on, options) => {
     }
 
     const s = view.state
+    const runningCount = list.filter(agent => agent.endedAt === undefined).length
+    const doing = activity(s.waitingFor, { ...(await read($, main)), isAgentRunning: runningCount > 0 })
+    const stopped = isStopped(s, doing, runningCount)
+    const nextStep = nextPhase(s)
     const review = s.review
     const findings = review?.findings ?? []
     const openPaths = new Set(findings.filter(f => f.status !== 'fixed').map(f => (f.path ?? '').split(':')[0]))
     const shown = list.slice(-8)
-    const from = Math.min(...shown.map(agent => agent.startedAt), at)
+    const from = timelineStart(shown)
 
     return (
       <Box flexDirection="column" gap={1}>
@@ -428,11 +564,26 @@ export const register: Register = (on, options) => {
             {review?.round && <Text>{' '}{chip(`round ${review.round}/2`, COLORS.plan)}</Text>}
             <Text dimColor>{`  updated ${ago(at - view.mtimeMs)} ago`}</Text>
           </Text>
-          {s.waitingFor && (
+          {doing === 'waiting' && (
             <Text>
               {'  '}
               {chip('⏸ WAITING FOR YOU', COLORS.medium)}
-              <Text color="warning" bold>{`  ${s.waitingFor}`}</Text>
+              <Text color="warning" bold>{`  ${s.waitingFor ?? 'your answer'}`}</Text>
+            </Text>
+          )}
+          {doing === 'working' && (
+            <Text color={WORKING} bold>
+              {'  ● working'}
+            </Text>
+          )}
+          {stopped && (
+            <Text wrap="truncate-end">
+              <Text color="warning" bold>
+                {'  ⏸ stopped'}
+              </Text>
+              <Text dimColor>{nextStep ? `  ·  next: ${nextStep}` : ''}</Text>
+              <Text dimColor>{'  ·  continue with '}</Text>
+              <Text bold>{`/devflow:run --resume ${s.task ?? ''}`.trim()}</Text>
             </Text>
           )}
         </Box>
@@ -446,31 +597,44 @@ export const register: Register = (on, options) => {
             const steps = mark === 'current' ? currentSteps(s) : []
             const nextMark = i < PHASES.length - 1 ? phaseMark(s, PHASES[i + 1]!) : 'pending'
             const detail =
-              phase === 'plan' && mark === 'done'
-                ? 'approved'
-                : phase === 'implement' && (s.parts ?? []).length > 0
-                  ? `${(s.parts ?? []).filter(part => part.status === 'done').length}/${(s.parts ?? []).length} parts`
-                  : ''
+              mark === 'skipped'
+                ? 'skipped'
+                : mark === 'current' && stopped
+                  ? 'stopped'
+                  : phase === 'plan' && mark === 'done'
+                    ? 'approved'
+                    : phase === 'implement' && (s.parts ?? []).length > 0
+                      ? `${(s.parts ?? []).filter(part => part.status === 'done').length}/${(s.parts ?? []).length} parts`
+                      : phase === 'finish' && (s.followUps ?? []).length > 0
+                        ? `${(s.followUps ?? []).filter(item => item.status !== 'working').length}/${(s.followUps ?? []).length} follow-ups`
+                        : ''
+            const currentColor = stopped ? 'warning' : 'claude'
             return (
               <Box flexDirection="column">
                 <Text>
-                  <Text color={RAIL_COLOR[mark]} bold>
-                    {mark === 'done' ? ' ✓ ' : mark === 'current' ? ' ◉ ' : ' ○ '}
+                  <Text color={mark === 'current' ? currentColor : RAIL_COLOR[mark]} bold>
+                    {mark === 'done' ? ' ✓ ' : mark === 'current' ? (stopped ? ' ⏸ ' : ' ◉ ') : mark === 'skipped' ? ' – ' : ' ○ '}
                   </Text>
-                  <Text color={mark === 'pending' ? 'inactive' : 'text'} bold={mark === 'current'}>
+                  <Text color={mark === 'pending' || mark === 'skipped' ? 'inactive' : 'text'} bold={mark === 'current'}>
                     {phase.padEnd(11)}
                   </Text>
                   <Text dimColor>{detail}</Text>
                 </Text>
-                {steps.map(step => (
-                  <Text>
-                    <Text color={RAIL_COLOR[mark]}>{' ┃   '}</Text>
-                    <Text color={RAIL_COLOR[step.mark]} bold={step.mark === 'current'} dimColor={step.mark === 'pending'}>
-                      {step.mark === 'current' ? '▸ ' : step.mark === 'done' ? '✓ ' : '· '}
-                      {step.name}
+                {steps.map((step, j) => {
+                  const isCurrent = step.mark === 'current'
+                  const hint = isCurrent ? stepHint(step.name) : ''
+                  return (
+                    <Text wrap="truncate-end">
+                      <Text color={RAIL_COLOR[mark]}>{' ┃'}</Text>
+                      <Text dimColor>{j === steps.length - 1 ? '   └─ ' : '   ├─ '}</Text>
+                      <Text color={isCurrent ? currentColor : RAIL_COLOR[step.mark]} bold={isCurrent} dimColor={step.mark === 'pending'}>
+                        {step.mark === 'done' ? '✓ ' : isCurrent ? (stopped ? '⏸ ' : '● ') : '○ '}
+                        {stepLabel(step.name, s)}
+                      </Text>
+                      <Text dimColor>{hint ? `  ${hint}` : ''}</Text>
                     </Text>
-                  </Text>
-                ))}
+                  )
+                })}
                 {i < PHASES.length - 1 && (
                   <Text color={RAIL_COLOR[nextMark === 'pending' ? 'pending' : 'done']} dimColor={nextMark === 'pending'}>
                     {nextMark === 'pending' ? ' ┊' : ' ┃'}
@@ -499,10 +663,14 @@ export const register: Register = (on, options) => {
           </Box>
         )}
 
-        {shown.length > 0 && (
+        {(shown.length > 0 || mainState.turnStartedAt !== undefined) && (
           <Box flexDirection="column">
-            {heading('Agents', `${shown.filter(agent => agent.endedAt === undefined).length} running`)}
-            {agentRows(shown, from)}
+            {heading('Agents', agentCounts(shown))}
+            {timeAxis}
+            <Box flexDirection="column" gap={1}>
+              {mainRow(from, s.waitingFor)}
+              {agentRows(shown, from)}
+            </Box>
           </Box>
         )}
 
@@ -593,20 +761,24 @@ export const register: Register = (on, options) => {
           <Box flexDirection="column">
             {heading('Assumptions & escalations')}
             {(s.assumptions ?? []).map(item => (
-              <Text wrap="truncate-end">
+              <Box>
                 <Text color="warning" bold>
                   {' ? '}
                 </Text>
-                <Text>{item}</Text>
-              </Text>
+                <Box flexShrink={1}>
+                  <Text wrap="wrap">{item}</Text>
+                </Box>
+              </Box>
             ))}
             {(s.escalations ?? []).map(item => (
-              <Text wrap="truncate-end">
+              <Box>
                 <Text color="suggestion" bold>
                   {' ↑ '}
                 </Text>
-                <Text>{item}</Text>
-              </Text>
+                <Box flexShrink={1}>
+                  <Text wrap="wrap">{item}</Text>
+                </Box>
+              </Box>
             ))}
           </Box>
         )}

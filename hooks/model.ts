@@ -5,9 +5,10 @@ export const PHASES = ['plan', 'implement', 'review', 'summary', 'finish'] as co
 const PLAN_STEPS = ['ground', 'decide', 'builder-check', 'approve']
 const REVIEW_STEPS = ['packet', 'find', 'verify', 'fix', 'round-2', 'report']
 
-export type Mark = 'done' | 'current' | 'pending'
+export type Mark = 'done' | 'current' | 'pending' | 'skipped'
 
 export function phaseMark(state: FlowState, phase: string): Mark {
+  if (phase !== state.phase && (state.skipped ?? []).includes(phase)) return 'skipped'
   if (state.phase === 'done') return 'done'
   const at = PHASES.indexOf((state.phase ?? 'plan') as (typeof PHASES)[number])
   const index = PHASES.indexOf(phase as (typeof PHASES)[number])
@@ -25,12 +26,117 @@ export function currentSteps(state: FlowState): { name: string; mark: Mark }[] {
     const isIntegrating = state.step === 'integrate'
     return [...parts, { name: 'integrate', mark: isIntegrating ? 'current' : 'pending' }]
   }
+  if (state.phase === 'finish') {
+    return (state.followUps ?? []).map(item => ({
+      name: `follow-up ${item.n}`,
+      mark: (item.status === 'working' ? 'current' : 'done') as Mark,
+    }))
+  }
   const names = state.phase === 'plan' ? PLAN_STEPS : state.phase === 'review' ? REVIEW_STEPS : []
   const at = names.indexOf(state.step ?? '')
   return names.map((name, index) => ({
     name,
     mark: at < 0 ? 'pending' : index < at ? 'done' : index === at ? 'current' : 'pending',
   }))
+}
+
+export type Activity = 'waiting' | 'working' | 'idle'
+
+/**
+ * What the session is doing for the developer. `waitingFor` comes from state.json, which a skill
+ * can leave set after the developer answered; a running turn or a subagent still at work in the
+ * background outranks it, an open question does not.
+ */
+export function activity(
+  waitingFor: string | null | undefined,
+  session: { isWorking: boolean; isAsking: boolean; isAgentRunning?: boolean },
+): Activity {
+  if (session.isAsking) return 'waiting'
+  if (session.isWorking || session.isAgentRunning) return 'working'
+  return waitingFor ? 'waiting' : 'idle'
+}
+
+/**
+ * The main session's row. Its subagents run in the background, so its own turn can end while
+ * they work: then it waits on them, which outranks a `waitingFor` left in state.json.
+ */
+export function mainStatus(
+  waitingFor: string | null | undefined,
+  main: { isWorking: boolean; isAsking: boolean; turnStartedAt?: number; turnEndedAt?: number },
+  runningRoles: string[],
+  at: number,
+): { tone: Activity; text: string } {
+  if (main.isAsking) return { tone: 'waiting', text: 'waiting for you' }
+  if (main.isWorking) return { tone: 'working', text: `working ${ago(at - (main.turnStartedAt ?? at))}` }
+  if (runningRoles.length > 0) return { tone: 'working', text: `waiting on ${[...new Set(runningRoles)].join(', ')}` }
+  if (waitingFor) return { tone: 'waiting', text: 'waiting for you' }
+  return { tone: 'idle', text: `idle ${ago(at - (main.turnEndedAt ?? at))}` }
+}
+
+/** An agent row's status word and how long it ran, or has been running. */
+export function agentStatus(agent: { startedAt: number; endedAt?: number }, at: number): { isRunning: boolean; text: string } {
+  const isRunning = agent.endedAt === undefined
+  return isRunning
+    ? { isRunning, text: `running ${ago(at - agent.startedAt)}` }
+    : { isRunning, text: `done in ${ago(agent.endedAt! - agent.startedAt)}` }
+}
+
+const STEP_LABEL: Record<string, string> = {
+  ground: 'read the project',
+  decide: 'questions',
+  'builder-check': 'plan check',
+  approve: 'approval',
+  integrate: 'final checks',
+  packet: 'prepare',
+  find: 'find bugs',
+  verify: 'verify findings',
+  fix: 'fixes',
+  'round-2': 'round 2',
+  report: 'report',
+}
+
+const STEP_HINT: Record<string, string> = {
+  ground: 'reading your docs and code',
+  decide: 'settling open decisions with you',
+  'builder-check': 'a fresh agent reads the plan as the builder would',
+  approve: 'your go-ahead to build',
+  part: 'an implementer builds this part',
+  integrate: 'project checks over the whole change',
+  packet: 'collecting the diff, docs and check results',
+  find: 'a finder looks for real bugs',
+  verify: 'verifiers try to disprove each candidate',
+  fix: 'obvious fixes applied, the rest asked',
+  'round-2': 're-checking only the fixes',
+  report: 'writing the review report',
+  'follow-up': 'a change you asked for after the summary',
+}
+
+/** A sub-step's name as the developer reads it; parts and follow-ups carry what they are about. */
+export function stepLabel(step: string, state: FlowState): string {
+  const part = /^part (\d+)$/.exec(step)
+  if (part) {
+    const title = (state.parts ?? []).find(p => p.n === Number(part[1]))?.title
+    return title ? `${step} · ${title}` : step
+  }
+  const followUp = /^follow-up (\d+)$/.exec(step)
+  if (followUp) {
+    const item = (state.followUps ?? []).find(f => f.n === Number(followUp[1]))
+    if (!item) return step
+    return `${step} · ${item.ask}${item.status === 'moved' ? ' → new task' : ''}`
+  }
+  return STEP_LABEL[step] ?? step
+}
+
+/** One line on what happens in a sub-step. */
+export function stepHint(step: string): string {
+  return STEP_HINT[/^part \d+$/.test(step) ? 'part' : /^follow-up \d+$/.test(step) ? 'follow-up' : step] ?? ''
+}
+
+/** The phase that comes after the current one, past any recorded skips; none at the end. */
+export function nextPhase(state: FlowState): string | undefined {
+  const at = PHASES.indexOf((state.phase ?? '') as (typeof PHASES)[number])
+  if (at < 0) return undefined
+  return PHASES.slice(at + 1).find(phase => !(state.skipped ?? []).includes(phase))
 }
 
 export function ago(ms: number): string {
@@ -73,6 +179,19 @@ export function describeCall(tool: string, input: Record<string, unknown>): stri
     pick('skill') ??
     ''
   return `${tool} ${target}`.trim().slice(0, 70)
+}
+
+/**
+ * Project folders, outside the session's own, that hold a devflow `.flow/` a tool call touched:
+ * a task planned in another repository than the one the session started in.
+ */
+export function flowRootsIn(input: Record<string, unknown>): string[] {
+  const roots = new Set<string>()
+  for (const value of Object.values(input)) {
+    if (typeof value !== 'string') continue
+    for (const match of value.matchAll(/(\/[^\s'"`;|&()<>]*?)\/\.flow\//g)) roots.add(match[1]!)
+  }
+  return [...roots]
 }
 
 /** Short role name for a subagent type such as `devflow:implementer-be`. */

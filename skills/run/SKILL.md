@@ -24,13 +24,20 @@ References:
 
 ## 0. Resume
 
-With `--resume`, read `.flow/<slug>/state.json` (the most recently updated one when no slug is given) and continue from its `phase` and `step`, reading the files that phase produced. Skip to that phase.
+With `--resume`, read `.flow/<slug>/agents/state.json` (`.flow/<slug>/state.json` in a task from before devflow 0.2.1) (the most recently updated one when no slug is given) and continue from its `phase` and `step`, reading the files that phase produced. Skip to that phase. A phase that already finished continues with the next one:
+
+- `plan` with `plan.md` saying `Status: approved`: step 2.
+- `implement` with every part done: the review in step 2 (the `review` skill with `--task <slug>`), unless `state.json` lists `review` under `skipped`.
+- `review` with `review.md` written: step 3.
+- `summary` with `summary.md` and `changelog.md` written: step 4.
 
 ## 1. Plan
 
 Invoke the `plan` skill with the task. It grounds itself in the project, sizes the task, asks what only the developer can answer, and returns an approved plan, or reports the task as `trivial`.
 
 **Trivial**: do it yourself: invoke `code-rules` (and `fe-rules` / `be-rules` for the layer), make the change, run the project checks that cover it, read your diff once, and report in two or three lines what changed and what the checks said. No `.flow/` files. The run ends here.
+
+When the developer chose **Keep it for later**, the run ends here: say where the plan is and that `/devflow:implement <slug>` builds it.
 
 Otherwise record `base` (`git rev-parse HEAD`, or the empty tree in a repository without commits) in `state.json`.
 
@@ -50,9 +57,22 @@ Look for finishing steps this project defines: instructions in `CLAUDE.md` / `AG
 
 The files in `.flow/<slug>/` are the developer's. Nothing there is deleted without their explicit answer.
 
-1. Ask whether the whole task is truly done. List anything still open (findings, suggestions, unverified assumptions, failed checks) in the question so the answer is informed. When it is not done, keep everything, say what is left, and stop here.
+1. Ask whether the whole task is truly done. List anything still open (findings, suggestions, unverified assumptions, failed checks, follow-ups the review never saw) in the question so the answer is informed. When it is not done, keep everything, say what is left, and stop here.
 2. When it is done, ask what to do with the files, in one question:
-   - keep the important ones (`plan.md`, `summary.md`, the review's `report.md`) and delete the rest (`state.json`, briefs, reports, packets, patches) (Recommended),
+   - keep your files (`plan.md`, `review.md`, `summary.md`, `changelog.md`) and delete the agents' working files in `agents/` (Recommended),
    - delete everything,
    - keep everything.
 3. Delete exactly what they chose inside `.flow/<slug>/`, and `.flow/` only if it is left empty. Set `phase: done` in `state.json` when it is kept.
+
+## Follow-ups
+
+Once the summary is shown, the developer may ask for a fix or something new before the task is closed: during finish, at the clean-up question, or after it while `.flow/<slug>/` still exists. That request continues this run; it does not end it or start another.
+
+1. Record it in `state.json`: add `{ "n": <next>, "ask": "<a few words>", "status": "working" }` to `followUps`, and set `phase: finish` and `step: follow-up <n>`. The live view shows it under finish.
+2. Size it:
+   - **Small** (a few lines, no further code reading): make it yourself, with `code-rules` and the layer's rules.
+   - **Bigger, inside the task**: an implementer with a brief at `agents/implementer-<n>-brief.md`, numbered on from the last one, as the `implement` skill does.
+   - **New work beyond the task** (a feature of its own, another area): say so, set its status to `moved`, and offer to start it as a new task with `/devflow:run`. Build nothing for it here.
+3. Run the project checks that cover the change, then set its status to `done`.
+4. Add it to `summary.md` and `changelog.md` under **Follow-ups**, marked not reviewed: the review ran before it.
+5. Go back to where the run was: the finishing steps or the clean-up question. When the follow-ups changed more than a few lines, recommend a review of them (`/devflow:review`) before the task is called done.

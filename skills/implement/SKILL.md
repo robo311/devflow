@@ -18,7 +18,7 @@ References:
 
 Read `.flow/<slug>/plan.md`. It must say `Status: approved`; when it does not, or there is no plan, say so and offer to run the `plan` skill first. Note the tier, the review depth and the parts.
 
-Keep `.flow/<slug>/state.json` current as `${CLAUDE_PLUGIN_ROOT}/skills/run/references/state.md` describes: set `phase: implement`, list the parts, and update each part's status as it moves. When `state.json` has no `base`, record `git rev-parse HEAD` as it before the first part starts.
+Keep `.flow/<slug>/agents/state.json` current as `${CLAUDE_PLUGIN_ROOT}/skills/run/references/state.md` describes: set `phase: implement`, list the parts, and update each part's status as it moves. When `state.json` has no `base`, record `git rev-parse HEAD` as it before the first part starts.
 
 ## 2. Schedule
 
@@ -28,12 +28,12 @@ Then decide how many implementers the work needs. One implementer per part is th
 
 ## 3. Brief
 
-For each implementer run, write `.flow/<slug>/brief-<n>.md`, numbered in dispatch order, so that an implementer who never saw the conversation builds the right thing:
+For each implementer run, write `.flow/<slug>/agents/implementer-<n>-brief.md`, numbered in dispatch order, so that an implementer who never saw the conversation builds the right thing:
 
 ```
 # Brief <n>: <part title, or the titles of the grouped parts>
 Plan: .flow/<slug>/plan.md (part <n>, or parts <n>, <m>)
-Report to: .flow/<slug>/report-<n>.md
+Report to: .flow/<slug>/agents/implementer-<n>-report.md
 
 ## Goal
 ## Tasks                       the parts' task checklists, copied from the plan; tick each in plan.md when done
@@ -74,6 +74,8 @@ Run the project checks over the whole change. When parts meet (a page calling a 
 
 Unless `--no-review` was given, invoke the `review` skill with `<base> --task <slug> --depth <the plan's review depth>`, `base` from `state.json`. It verifies the change, fixes what is obvious and brings the rest to the developer.
 
+When the task changed no code at all (only a report, notes or data), there is nothing for the review to verify: say so in one line, add `review` to `skipped` in `state.json`, and go on. `--no-review` is recorded the same way.
+
 ## 7. Hand off
 
-When the `run` skill called you, hand back to it. Otherwise tell the developer, in a few lines, that the plan is built and reviewed, and where the reports are.
+When the `run` skill called you, hand back to it. Otherwise the task still needs its summary and finish: invoke the `run` skill with `--resume <slug>`, which continues from the state you left.

@@ -1,5 +1,8 @@
 export type FlowPart = { n: number; title: string; layer?: string; agent?: string; status: string }
 
+/** A fix or addition the developer asked for after the summary; `moved` went to a task of its own. */
+export type FlowFollowUp = { n: number; ask: string; status: 'working' | 'done' | 'moved' | string }
+
 export type FlowFinding = {
   id: string
   severity?: string
@@ -16,8 +19,11 @@ export type FlowState = {
   phase?: string
   step?: string
   waitingFor?: string | null
+  /** Phases deliberately left out, such as `review` for a task that changed no code. */
+  skipped?: string[]
   updatedAt?: string
   parts?: FlowPart[]
+  followUps?: FlowFollowUp[]
   checks?: Record<string, string>
   assumptions?: string[]
   escalations?: string[]
@@ -59,6 +65,15 @@ export type SessionInfo = {
 
 declare module 'claude-code' {
   interface PluginState {
-    devflow: { flow: FlowView | null; agents: AgentRow[]; now: number; session: SessionInfo | null }
+    devflow: {
+      flow: FlowView | null
+      agents: AgentRow[]
+      now: number
+      session: SessionInfo | null
+      /** The main loop: a turn is running, an AskUserQuestion dialog is open in it, and when its last turn started and ended. */
+      main: { isWorking: boolean; isAsking: boolean; turnStartedAt?: number; turnEndedAt?: number }
+      /** Project folders outside the session's own whose `.flow/` a tool call touched. */
+      roots: string[]
+    }
   }
 }

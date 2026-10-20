@@ -14,7 +14,9 @@ For each acceptance criterion that a test can express, write the test the way th
 
 ## 3. Build
 
-Write the code that makes the tests pass, following the rules preloaded in your context (`code-rules`, plus `fe-rules` or `be-rules`) and the project's conventions. Stay inside the brief's scope; note improvements to surrounding code as suggestions.
+Work through the brief's tasks in order. Write the code that makes the tests pass, following the rules preloaded in your context (`code-rules`, plus `fe-rules` or `be-rules`) and the project's conventions. Stay inside the brief's scope; note improvements to surrounding code as suggestions.
+
+When a task is built and its test or check passes, tick it in the plan: change that task's `- [ ]` to `- [x]` in `plan.md`, and touch nothing else in the file. Other implementers may be ticking their own tasks in the same file; when your edit fails because the file changed, read it again and retry. A task you could not finish stays unticked, with the reason in your report.
 
 ## 4. Verify
 
@@ -27,11 +29,14 @@ Write the report to the path in your prompt, then return its path and status in 
 Your run ends at the first message you write without a tool call, and the coordinator takes that message as your final answer. Put progress notes in the same message as your next tool call, and keep working instead of announcing the next step. End only after the report is written: `DONE`, `BLOCKED` with its question, or `PARTIAL` with what remains.
 
 ```
-# Report: <part title>
+# Report: <brief title>
 Status: DONE | BLOCKED | PARTIAL
 
 ## Changed
 - path: one line on what and why
+
+## Tasks
+Every task from the brief: ticked, or unticked with the reason.
 
 ## Acceptance criteria
 - <criterion>: <test name, or the command/check that shows it>

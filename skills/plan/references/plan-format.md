@@ -19,9 +19,13 @@ Change:      the files or areas that change, and how
 Behaviour:   what users, API consumers or data see differently: before → after ("none" for internal changes)
 Affects:     code outside the change that depends on it (callers, consumers, jobs), with path; "nothing else"
 Decisions:   only if any, each tagged [you] / [my call] / ASSUMPTION
+Tasks:       - [ ] <task>
+             - [ ] <task>
 Done when:   the observable checks: a test that fails now and passes after,
              a command whose output changes, a behaviour to try
 ```
+
+A light plan is one part: one implementer builds all its tasks.
 
 ## Full plan
 
@@ -50,6 +54,9 @@ with why they lost.
 1. <part title>  (layer: be | fe | other · depends on: <part numbers> · repo: <when several>)
    Changes:    files or areas
    Acceptance: observable criteria, each one testable
+   Tasks:
+   - [ ] <task>
+   - [ ] <task>
 2. ...
 
 ### What changes
@@ -94,4 +101,16 @@ Lead with what the developer must decide or verify; leave the rest to the file.
 
 ## Parts
 
-A part is one unit of work for one implementer: one layer (`be`, `fe` or `other`), a clear set of files, and acceptance criteria it can test on its own. A full-stack feature splits into a `be` part that settles the API contract and an `fe` part that depends on it. Parts that share no files can run in parallel; everything else runs in order.
+A part is the work one implementer takes on in one run: one layer (`be`, `fe` or `other`), a clear set of files, and acceptance criteria it can test on its own. Every implementer costs a fresh agent that has to read its way into the project, so size parts by the work, not by the file or the step:
+
+- Keep related changes in one layer together. A handler, its route, its validation and its tests are one part, not four.
+- Split only for a reason: a different layer (a full-stack feature splits into a `be` part that settles the API contract and an `fe` part that depends on it), a separate area of the code that the same agent would have to learn from scratch, or independent work worth running in parallel.
+- A change of a few lines is never a part of its own. Fold it into the part it belongs with.
+
+Most `full` tasks have two to four parts. Parts that share no files can run in parallel; everything else runs in order.
+
+## Tasks
+
+Each part lists its tasks: the concrete steps that build it, in the order they will be done, as Markdown checkboxes (`- [ ] <task>`). A task is one step a reviewer could check off by looking at the change: "add `getOrderStatus` to `src/handlers/orders.js`", "register `GET /orders/:id/status`", "test the 404 case". Two to six tasks per part is typical; a task that would take one line of code merges into its neighbour.
+
+The implementer ticks a task (`- [x]`) in this file when it is built and its test or check passes, so the plan shows progress as the work moves. Write every task unticked.

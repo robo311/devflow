@@ -18,7 +18,9 @@ You are the implementer who will build this plan, reading it before starting. Yo
    - work the plan forgot: migrations, API specs, generated types, configs, docs,
    - dependents of the changed code that the blast radius misses (search for callers and consumers yourself), and behaviour changes the plan does not state,
    - guesses that are not tagged `[my call]` or `ASSUMPTION`,
-   - parts that share files but are marked as independent, or a `fe` part that does not depend on the `be` part whose contract it uses.
+   - parts that share files but are marked as independent, or a `fe` part that does not depend on the `be` part whose contract it uses,
+   - parts split finer than the work needs (a part of a few lines, related changes in one layer spread over several parts), or one part too large for a single implementer,
+   - tasks that are vague, out of order, or missing work the acceptance criteria need.
 4. Use read-only commands only. Leave the working tree exactly as you found it.
 
 ## Output

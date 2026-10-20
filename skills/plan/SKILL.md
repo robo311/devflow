@@ -52,7 +52,7 @@ Before writing, consider more than one way to build it and drop the weak ones, i
 
 ## 5. Write
 
-Write the plan with `plan-format.md` to `.flow/<slug>/plan.md`. Copy its assumptions and blast radius into `state.json`.
+Write the plan with `plan-format.md` to `.flow/<slug>/plan.md`. Size the parts by the work and give each its task checklist, as the format's Parts and Tasks sections describe. Copy its assumptions and blast radius into `state.json`.
 
 Every guess is tagged `[my call]` or `ASSUMPTION`; every fact about the project carries its evidence.
 

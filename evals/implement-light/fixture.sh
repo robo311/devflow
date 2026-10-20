@@ -88,6 +88,10 @@ Decisions:   response is { "status": order.status }  [you]
    Changes:    src/handlers/orders.js, src/routes.js, test/orders.test.js
    Acceptance: GET /orders/:id/status returns 200 { status } for an existing order;
                returns 404 { error: { code: "not_found", ... } } for a missing one.
+   Tasks:
+   - [ ] add getOrderStatus to src/handlers/orders.js, with tests for 200 and 404
+   - [ ] register GET /orders/:id/status in src/routes.js
+   - [ ] run npm test
 
 Done when:   npm test passes with tests for both criteria.
 EOF

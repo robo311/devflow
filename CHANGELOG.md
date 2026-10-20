@@ -2,6 +2,13 @@
 
 All notable changes to devflow. Versions follow the `version` in `.claude-plugin/plugin.json`; Claude Code offers an update when it changes.
 
+## 0.2.0
+
+- Plans size parts by the work: related changes in one layer stay in one part, and a change of a few lines is never a part of its own. The plan-checker flags parts split too fine or too large.
+- Every part in a plan carries a task checklist (`- [ ]`); implementers tick each task in `plan.md` when it is built and its test passes, and the coordinator checks that every task is ticked.
+- `implement` gives small parts in the same layer to one implementer instead of starting an agent per part.
+- README: screenshots retaken from the redesigned, dark presentation.
+
 ## 0.1.1
 
 - Implementers end their run only after writing a report (`DONE`, `BLOCKED` or `PARTIAL`); a missing report counts as `PARTIAL`, and a part is re-dispatched at most twice for the same reason before it comes to the developer.

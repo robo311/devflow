@@ -11,7 +11,7 @@ A task's tier sets how much planning, implementation machinery and review it get
 |---|---|---|---|---|
 | `trivial` | One clear, local change with no decisions left: a typo, a renamed label, a one-line fix whose cause is known | none; one line saying what will change | the coordinator itself | project checks + a self-check of the diff |
 | `light` | A small feature or fix in one area, at most one open decision | short plan (intent, change, done check), one confirmation | one implementer, or the coordinator for a few lines | `devflow:review`, depth by risk |
-| `full` | New behaviour, several parts or repositories, a contract change, open decisions, or unclear requirements | design plan, builder check, explicit approval | one implementer per part | `devflow:review`, depth by risk, round 2 |
+| `full` | New behaviour, several parts or repositories, a contract change, open decisions, or unclear requirements | design plan, builder check, explicit approval | one implementer per part, small parts grouped | `devflow:review`, depth by risk, round 2 |
 
 Starting a new project is always `full`: its foundation needs the developer's confirmation.
 

@@ -8,7 +8,7 @@ A Claude Code plugin that takes a task from request to a reviewed change, and sp
 
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#install)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-![Status](https://img.shields.io/badge/status-v0.1-orange)
+![Status](https://img.shields.io/badge/status-v0.2-orange)
 
 </div>
 
@@ -113,8 +113,8 @@ Each phase also works on its own:
 | Skill | You call it? | What it does |
 |---|---|---|
 | **`run`** | yes | The coordinator. Chains the other skills, re-checks the tier at every phase, keeps `state.json` current, runs your project's finishing steps and asks before cleaning up. Small fixes it makes itself instead of spinning up an agent. |
-| **`plan`** | yes | Grounds itself in your docs and code, maps the blast radius, sizes the task, asks decisions in rounds with recommended answers, writes `.flow/<slug>/plan.md`, runs a builder check on `full` plans, and shows you a brief instead of the document. For a new project it proposes the foundation. |
-| **`implement`** | yes | Writes a brief per part, picks `implementer-be`, `implementer-fe` or `implementer`, runs independent parts in parallel, checks every report (DONE / BLOCKED / PARTIAL), makes sure the parts fit together, then hands over to review. |
+| **`plan`** | yes | Grounds itself in your docs and code, maps the blast radius, sizes the task, asks decisions in rounds with recommended answers, writes `.flow/<slug>/plan.md` with parts sized to the work and a task checklist for each, runs a builder check on `full` plans, and shows you a brief instead of the document. For a new project it proposes the foundation. |
+| **`implement`** | yes | Decides how many implementers the parts need (small parts share one), writes their briefs, picks `implementer-be`, `implementer-fe` or `implementer`, runs independent parts in parallel, checks every report (DONE / BLOCKED / PARTIAL) and that every task in the plan is ticked, makes sure the parts fit together, then hands over to review. |
 | **`review`** | yes | Builds one packet (diff, intent, docs, project check results, risk paths, convention examples), dispatches the finder and verifiers, triages findings by severity and action, applies auto-fixes, asks you about the rest and about implementer suggestions, runs a fix-only round 2, and proposes `REVIEW.md` entries. |
 | **`summary`** | rarely | The end-of-task report: changes and why, behaviour now, worth a look, open findings, unverified assumptions, suggestions for later. |
 | **`code-rules`** | no | The rules every implementer follows: priority order, architecture, conventions, reuse, structure, comments that explain *why*, scope, errors, tests first, verification. |
@@ -144,7 +144,7 @@ The **coordinator** (your main Claude session) keeps the conversation and the bi
 |---|---|---|
 | `explorer` | Sonnet | Answers concrete questions about the codebase with `file:line` evidence |
 | `plan-checker` | Opus | Reads the plan as the implementer would, before anything is built |
-| `implementer-be` / `implementer-fe` / `implementer` | Opus | Builds one part, tests first, with the matching rules preloaded |
+| `implementer-be` / `implementer-fe` / `implementer` | Opus | Builds the part (or few small parts) in its brief, tests first, ticking the plan's tasks as it goes, with the matching rules preloaded |
 | `finder` | Opus | Hunts for real defects in the change |
 | `verifier` | Opus | Tries to refute each finding; only survivors reach you |
 
@@ -156,7 +156,7 @@ Two separate axes decide the effort. **Size** sets how much planning a task gets
 |---|---|---|---|---|
 | **trivial** | One clear, local change | one line | coordinator | project checks + self-check |
 | **light** | Small feature or fix, one area | short brief, you confirm | one implementer | finder, verifier only if something was found |
-| **full** | New behaviour, several parts, contract changes, new projects | design plan + builder check | one implementer per part | finder + verifiers + round 2 |
+| **full** | New behaviour, several parts, contract changes, new projects | design plan + builder check | one implementer per part, small parts grouped | finder + verifiers + round 2 |
 
 Touching a **risk path** (auth, payments, migrations, public APIs, data deletion, secrets, CI) raises the review to `deep` at any tier: a security-focused second finder, and two independent verifiers on anything that needs your call.
 
@@ -197,7 +197,7 @@ flowchart LR
 - **Your project's checks first.** Tests, lint, type checks and project validators (an OpenAPI check, say) are discovered and run. What a script can prove, the reviewer doesn't guess.
 - **Readable findings**, numbered and ranked by severity, each with what it breaks today:
 
-<p align="center"><img src="assets/finding.png" alt="Example finding F1, high severity, needs you: problem, when it happens, what it breaks, recommended fix, alternatives and evidence with file and line references" width="620"></p>
+<p align="center"><img src="assets/finding.png" alt="Example finding F1, high severity, needs you, at src/orders/status.js:31: the problem, when it happens, what it breaks and the recommended fix, with file and line references" width="620"></p>
 
 <img src="assets/review-funnel.png" alt="Example review round: six candidates, two confirmed, three refuted by the verifiers with the reason, one unsettled, turned into findings F1 needs you, F2 fixed and F3 look at" width="100%">
 
@@ -212,7 +212,7 @@ Works on its own too: `/devflow:review` reviews your uncommitted work, or `/devf
 
 devflow ships a Claude Code mod, so you can watch the flow instead of guessing:
 
-<p align="center"><img src="assets/panel.png" alt="The devflow panel mid-review with example data: session model, effort, cost, context and rate limits; the flow map at review, fix step; one part done; agent timeline lanes; the review funnel; findings by severity; blast radius; checks; an open assumption" width="460"></p>
+<p align="center"><img src="assets/panel.png" alt="The devflow panel mid-review with example data: session model, effort, cost, context and rate limits; the flow map at the review fix step; agent timeline lanes; the review funnel; findings with severity and action; the blast radius" width="460"></p>
 <p align="center"><sub>Recreated from the mod's rendering code, with example data.</sub></p>
 
 - A **band above the prompt** with the phase rail and a loud **WAITING FOR YOU** when a decision is yours, plus a toast.

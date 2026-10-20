@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { activity, agentStatus, ago, flowRootsIn, mainStatus, nextPhase, stepHint, stepLabel, barCells, currentSteps, describeCall, encodeCells, laneCells, phaseMark } from './model'
+import { activity, agentStatus, ago, flowTasksIn, guideProgress, mainStatus, nextPhase, stepHint, stepLabel, barCells, currentSteps, describeCall, encodeCells, laneCells, phaseMark } from './model'
 
 function decode(base64: string): number[] {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
@@ -106,11 +106,15 @@ test('the main row says what the main session waits on', async () => {
   expect(mainStatus(null, idle, [], 120_000)).toEqual({ tone: 'idle', text: 'idle 1m' })
 })
 
-test('a devflow task in another repository is found from the paths tools touch', async () => {
-  expect(flowRootsIn({ file_path: '/work/fe-eshop/.flow/pharmacy-list-lazy/plan.md' })).toEqual(['/work/fe-eshop'])
-  expect(flowRootsIn({ command: "cd /work/fe-eshop/.flow/pharmacy-list-lazy && python3 -I - <<'EOF'" })).toEqual(['/work/fe-eshop'])
-  // the session's own .flow and paths without one add nothing
-  expect(flowRootsIn({ file_path: '.flow/perf/state.json', command: 'npm test' })).toEqual([])
+test('the tasks a session works on are the .flow folders its tools touch', async () => {
+  expect(flowTasksIn({ file_path: '/work/fe-eshop/.flow/pharmacy-list-lazy/plan.md' })).toEqual(['/work/fe-eshop/.flow/pharmacy-list-lazy'])
+  expect(flowTasksIn({ command: "cd /work/fe-eshop/.flow/pharmacy-list-lazy && python3 -I - <<'EOF'" })).toEqual(['/work/fe-eshop/.flow/pharmacy-list-lazy'])
+  expect(flowTasksIn({ command: 'mkdir -p .flow/perf/agents' })).toEqual(['.flow/perf'])
+  expect(flowTasksIn({ path: '.flow/reviews/20261020-140300/agents/review' })).toEqual(['.flow/reviews/20261020-140300'])
+  // listing .flow, globs, shell variables and the exclude line name no task
+  expect(flowTasksIn({ command: 'ls -t .flow/*/agents/state.json .flow/reviews' })).toEqual([])
+  expect(flowTasksIn({ command: 'cat ".flow/$slug/plan.md"; echo ".flow/" >> .git/info/exclude' })).toEqual([])
+  expect(flowTasksIn({ command: 'npm test' })).toEqual([])
 })
 
 test('follow-ups asked for after the summary show up as steps of finish', async () => {
@@ -132,6 +136,12 @@ test('follow-ups asked for after the summary show up as steps of finish', async 
   expect(stepLabel('follow-up 3', state)).toBe('follow-up 3 · Export to CSV → new task')
   expect(stepHint('follow-up 2')).toBe('a change you asked for after the summary')
   expect(currentSteps({ phase: 'finish' })).toEqual([])
+})
+
+test('the review guide counts its ticked boxes', async () => {
+  const guide = ['# Review guide', '- [x] Is the retry idempotent?', '  - [ ] an indented box counts too', '- [X] Keep the [my call]?', '- [ ] Try it', 'text with - [ ] inside'].join('\n')
+  expect(guideProgress(guide)).toEqual({ done: 2, total: 4 })
+  expect(guideProgress('# nothing to tick')).toEqual({ done: 0, total: 0 })
 })
 
 test('tool calls read as a short action', async () => {

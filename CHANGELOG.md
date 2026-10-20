@@ -2,6 +2,13 @@
 
 All notable changes to devflow. Versions follow the `version` in `.claude-plugin/plugin.json`; Claude Code offers an update when it changes.
 
+## 0.2.2
+
+- A finished task stays on the panel, marked finished, instead of turning into "no active task": clean-up sets `phase: done` first and keeps `agents/state.json` (the recommended choice deletes the other working files), so a later follow-up or `--resume` carries on from there. If the task's files are deleted anyway, the panel keeps its last view and marks it finished.
+- `summary` writes `review-guide.md`, your own review as a checklist, most important first: whether the change is what you wanted, the few spots worth reading (each a question with `path:line`, what to look for, why it matters and, where there is an idea behind it, a short lesson), decisions made for you, what to try by hand, what nobody checked, and what is safe to skim. The summary and the clean-up point to it; the clean-up says how many checks are left. Follow-ups add a check of their own. It replaces the summary's "Worth a look" list.
+- Live view: a **Your review** section shows how many of the guide's boxes you ticked, as you tick them.
+- The live view belongs to the session: it shows only tasks this session started, resumed or reviewed (any tool call touching `.flow/<task>/`), so a new session no longer opens the panel for, or shows, a task another session runs in the same project. `/devflow:run --resume <task>` brings a task into the session.
+
 ## 0.2.1
 
 - Follow-ups: a fix or addition asked for after the summary (during finish or at the clean-up question) is recorded in `state.json` and shows in the live view as a step under finish (`follow-up 2 · Sort the list by date`, with a `1/2 follow-ups` count). Small ones the coordinator makes, bigger ones go to an implementer, new work is offered as a new task; each lands in `summary.md` and `changelog.md` under Follow-ups, marked not reviewed.

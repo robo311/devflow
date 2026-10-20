@@ -182,16 +182,27 @@ export function describeCall(tool: string, input: Record<string, unknown>): stri
 }
 
 /**
- * Project folders, outside the session's own, that hold a devflow `.flow/` a tool call touched:
- * a task planned in another repository than the one the session started in.
+ * The devflow task folders a tool call touched (`.flow/<slug>` or `.flow/reviews/<ts>`, relative or
+ * absolute, in this project or another): the tasks this session works on. Globs and shell variables
+ * name no task.
  */
-export function flowRootsIn(input: Record<string, unknown>): string[] {
-  const roots = new Set<string>()
+export function flowTasksIn(input: Record<string, unknown>): string[] {
+  const tasks = new Set<string>()
   for (const value of Object.values(input)) {
     if (typeof value !== 'string') continue
-    for (const match of value.matchAll(/(\/[^\s'"`;|&()<>]*?)\/\.flow\//g)) roots.add(match[1]!)
+    for (const match of value.matchAll(/((?:[^\s'"`;|&()<>=]*\/)?\.flow\/)(reviews\/)?([^/\s'"`;|&()<>*?[{$]+)/g)) {
+      const [, base, review, name] = match
+      if (!review && name === 'reviews') continue
+      tasks.add(`${base}${review ?? ''}${name}`)
+    }
   }
-  return [...roots]
+  return [...tasks]
+}
+
+/** How many of the review guide's checkboxes the developer ticked. */
+export function guideProgress(text: string): { done: number; total: number } {
+  const boxes = text.split('\n').filter(line => /^\s*- \[[ xX]\] /.test(line))
+  return { done: boxes.filter(line => /^\s*- \[[xX]\] /.test(line)).length, total: boxes.length }
 }
 
 /** Short role name for a subagent type such as `devflow:implementer-be`. */

@@ -1,12 +1,14 @@
 ---
 name: summary
-description: Summarise a finished devflow task for the developer (what changed and why, behaviour now, the parts worth reading, open review items and leftovers) and write a plain-language changelog for whoever raised the task. Use when a devflow task's implementation and review are done.
+description: Summarise a finished devflow task for the developer (what changed and why, behaviour now, open review items and leftovers), write a review guide with only the spots worth a human check, and a plain-language changelog for whoever raised the task. Use when a devflow task's implementation and review are done.
 argument-hint: "<slug>"
 ---
 
 # Summary
 
-Tell the developer what their codebase looks like now, in a form they can read in a minute. They should come away knowing what changed, what behaves differently, which few spots deserve their eyes, and what is still open. Everything else stays in the files.
+Tell the developer what their codebase looks like now, in a form they can read in a minute. They should come away knowing what changed, what behaves differently, and what is still open. Everything else stays in the files.
+
+The few spots that deserve their eyes go into a review guide they work through, so their own review covers what the automated one cannot instead of the whole diff.
 
 Then write the same story for the person who raised the task (a product owner, a tester, a client, a teammate), so the developer can hand it over as it is.
 
@@ -16,7 +18,11 @@ Task: `$ARGUMENTS`
 
 Read `.flow/<slug>/plan.md`, `review.md`, every `agents/implementer-<n>-report.md` and `agents/state.json`. Get the change itself with `git diff --stat <base>` (`base` from `state.json`) and read the hunks you are going to point at.
 
-## 2. Write
+## 2. Review guide
+
+Write `.flow/<slug>/review-guide.md` as `${CLAUDE_PLUGIN_ROOT}/skills/summary/references/review-guide.md` describes: what to check and why, most important first, with a lesson where there is a real idea behind a check.
+
+## 3. Summary
 
 Write `.flow/<slug>/summary.md` and show it in the conversation, in the language of the conversation. Leave out empty sections; keep it to about twenty lines.
 
@@ -31,8 +37,8 @@ What changed and why
 Behaviour now
 - <before → after, as users, API consumers or data see it>
 
-Worth a look
-- path:line: why this part deserves a read (the important or non-obvious logic, a trade-off taken)
+Your review
+<N> checks, about <M> minutes: .flow/<slug>/review-guide.md
 
 Review
 Findings: <the review's Findings line> · open: <F-numbers still open, or "none">
@@ -45,9 +51,7 @@ Later
 - <implementer suggestions the developer did not apply, with the review's verdict, one line each, at most five>
 ```
 
-"Worth a look" holds at most three to five entries: the logic a reviewer would ask about, not every file. Explain each in a sentence or two.
-
-## 3. Changelog for the requester
+## 4. Changelog for the requester
 
 Write `.flow/<slug>/changelog.md` for the person who asked for the task. They know the product, not the code: write what they would notice, in plain words, with no file paths, code, tool names or review jargon. Keep it to about fifteen lines, short enough to paste into the issue, the ticket or a message. Write it in the language of the conversation unless the developer asks for another; leave out empty sections.
 
@@ -74,3 +78,7 @@ One to three sentences: what was asked and what is done now.
 A task that changed no code (an analysis, an audit) gets the same file: what was looked into, what came out, and what is recommended next.
 
 Show it in the conversation after the summary, under one line saying it is ready to hand over, with its path.
+
+## 5. Point to the review guide
+
+End with the review guide, so the developer's next step is their own review: its path, how many checks and minutes, and the questions under "Read these", one line each. Ask them to work through the file and tick the boxes before calling the task done. Do not paste the whole guide.

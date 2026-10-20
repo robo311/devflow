@@ -89,7 +89,7 @@ What happens next:
 1. **Plan.** devflow reads your `CLAUDE.md`, docs and the relevant code, picks a tier, and asks you only what it can't find out itself, with a recommended answer for each question. You get a short brief and one question: **Implement?**
 2. **Implement.** Subagents build the plan part by part, backend before frontend, tests first, following your project's conventions. You only hear from them if something blocks.
 3. **Review.** The change is reviewed, verified and triaged. Obvious fixes are applied, and you decide the rest with one click per finding.
-4. **Summary.** What changed and why, behaviour before → after, the 3–5 spots worth reading, and anything still open. Plus a short `changelog.md` in plain words for whoever raised the task.
+4. **Summary.** What changed and why, behaviour before → after, and anything still open. Plus `review-guide.md`, your own review as a checklist: only the spots worth a human eye, each with what to look for, why it matters and, where there is an idea behind it, a short lesson. And a short `changelog.md` in plain words for whoever raised the task.
 5. **Finish.** Your project's own finishing steps (docs, changelog) if it has any. Then it asks whether the task is truly done and what to keep from `.flow/`.
 
 A typo fix skips all of this: devflow just makes the change, runs your checks and tells you in two lines.
@@ -116,7 +116,7 @@ Each phase also works on its own:
 | **`plan`** | yes | Grounds itself in your docs and code, maps the blast radius, sizes the task, asks decisions in rounds with recommended answers, writes `.flow/<slug>/plan.md` with parts sized to the work and a task checklist for each, runs a builder check on `full` plans, and shows you a brief instead of the document. For a new project it proposes the foundation. |
 | **`implement`** | yes | Decides how many implementers the parts need (small parts share one), writes their briefs, picks `implementer-be`, `implementer-fe` or `implementer`, runs independent parts in parallel, checks every report (DONE / BLOCKED / PARTIAL) and that every task in the plan is ticked, makes sure the parts fit together, then hands over to review. |
 | **`review`** | yes | Builds one packet (diff, intent, docs, project check results, risk paths, convention examples), dispatches the finder and verifiers, triages findings by severity and action, applies auto-fixes, asks you about the rest and about implementer suggestions, runs a fix-only round 2, and proposes `REVIEW.md` entries. |
-| **`summary`** | rarely | The end-of-task report: changes and why, behaviour now, worth a look, open findings, unverified assumptions, suggestions for later. Also writes `changelog.md`, a plain-language version for whoever raised the task, ready to paste into the issue. |
+| **`summary`** | rarely | The end-of-task report: changes and why, behaviour now, open findings, unverified assumptions, suggestions for later. Writes `review-guide.md`, the checklist for your own review (what to read and why, decisions made for you, what to try, what nobody checked, what is safe to skim), and `changelog.md`, a plain-language version for whoever raised the task, ready to paste into the issue. |
 | **`code-rules`** | no | The rules every implementer follows: priority order, architecture, conventions, reuse, structure, comments that explain *why*, scope, errors, tests first, verification. |
 | **`fe-rules`** | no | Frontend additions: follow the existing design, state and data flow, loading/error/empty states, API types, forms, accessibility, `Intl` formatting, media, SEO for public pages, client-side security. |
 | **`be-rules`** | no | Backend additions: follow the existing architecture, input validation, authorization, transactions, safe migrations, API contracts (and their specs), logging, queries, external calls, jobs. |
@@ -216,11 +216,11 @@ devflow ships a Claude Code mod, so you can watch the flow instead of guessing:
 <p align="center"><sub>Recreated from the mod's rendering code, with example data.</sub></p>
 
 - A **band above the prompt** with the phase rail and a loud **WAITING FOR YOU** when a decision is yours, plus a toast.
-- A **panel** with a subway-style flow map, a timeline lane per agent, the live review funnel, findings by severity, the blast radius, checks and open assumptions.
+- A **panel** with a subway-style flow map, a timeline lane per agent, the live review funnel, findings by severity, the blast radius, checks, open assumptions, and how far you are through the review guide.
 - A **Session** section that works even without a task: model, effort, context fill, 5-hour and 7-day limits with reset times, and cost.
 - Optional **narration**: a tiny Haiku call describes what each running agent is doing (only while the panel is open; turn it off in `/config`).
 
-Open it any time with `/devflow-status`.
+Open it any time with `/devflow-status`. It follows the task of your own session: a task another session runs in the same project stays out of it until you continue that task here (`/devflow:run --resume <task>`).
 
 ## Your project stays in charge
 

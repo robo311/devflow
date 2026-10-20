@@ -33,6 +33,7 @@ const SAMPLE: FlowView = {
 type TestOn = Parameters<Extract<Parameters<typeof test>[1], (...args: never[]) => unknown>>[1]
 
 function answerStartup(on: TestOn) {
+  on('tool.call', () => ({ result: 'ok' }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('ui.open', () => ({ value: { isPlaced: true as const } }))
@@ -77,6 +78,7 @@ test('pane and band draw a task on every surface', async ($, on) => {
   on('fs.read', () => ({ value: JSON.stringify(SAMPLE.state) }))
   answerStartup(on)
   await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/.flow/order-status/agents/state.json' })
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const pane = await $.ui.mount({ plugin: 'devflow', surface, component: 'Pane', requestId: 'devflow', props: PANE_PROPS })
@@ -106,6 +108,7 @@ test('the band says working, not waiting, while a turn runs after the answer', a
   on('fs.read', () => ({ value: JSON.stringify(SAMPLE.state) }))
   answerStartup(on)
   await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/.flow/order-status/agents/state.json' })
 
   const band = await $.ui.mount({ plugin: 'devflow', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND_PROPS, isWorking: true } })
   await band.drawn()
@@ -144,6 +147,7 @@ test('the agents section lists the main session, marked as main', async ($, on) 
   answerStartup(on)
   on('turn.start', () => ({ turnId: 't1' }))
   await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/.flow/order-status/agents/state.json' })
   await $.turn.start({ text: 'answer', turnId: 't1' })
 
   const pane = await $.ui.mount({ plugin: 'devflow', surface: 'terminal', component: 'Pane', requestId: 'devflow', props: PANE_PROPS })
@@ -162,6 +166,7 @@ test('a flow stopped mid-way says so and names the next step', async ($, on) => 
   on('fs.read', () => ({ value: JSON.stringify(stopped) }))
   answerStartup(on)
   await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/.flow/perf/agents/state.json' })
 
   const band = await $.ui.mount({ plugin: 'devflow', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND_PROPS, isWorking: false } })
   await band.drawn()
@@ -186,6 +191,7 @@ test('a terminal too narrow for the panel to open on its own gets told how to op
   }))
   on('fs.stat', () => ({ value: { kind: 'file' as const, size: 100, mtimeMs: 60_000, isLink: false } }))
   on('fs.read', () => ({ value: JSON.stringify({ ...SAMPLE.state, waitingFor: null }) }))
+  on('tool.call', () => ({ result: 'ok' }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('ui.open', () => ({ value: { isPlaced: false as const, reason: 'opened unasked below 144 columns (now 120)' } }))
@@ -197,6 +203,7 @@ test('a terminal too narrow for the panel to open on its own gets told how to op
   on('settings.read', () => ({ value: {} }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { tokens: 1, window: 2, percent: 50 }, rateLimits: [] } }))
   await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/.flow/order-status/agents/state.json' })
 
   expect(toasts.some(text => text.includes('/devflow-status'))).toBe(true)
 })
@@ -210,6 +217,7 @@ test('a task that only just started shows up before it is sized', async ($, on) 
   on('fs.read', () => ({ value: JSON.stringify(early) }))
   answerStartup(on)
   await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/.flow/perf/agents/state.json' })
 
   const pane = await $.ui.mount({ plugin: 'devflow', surface: 'terminal', component: 'Pane', requestId: 'devflow', props: PANE_PROPS })
   await pane.drawn()
@@ -228,7 +236,6 @@ test('a task whose .flow lives in another repository stays on screen', async ($,
   }))
   on('fs.stat', ($, e) => ({ value: { kind: 'file' as const, size: 100, mtimeMs: 60_000, isLink: false } }))
   on('fs.read', ($, e) => ({ value: e.path.startsWith('/work/fe-eshop/.flow/') ? JSON.stringify(elsewhere) : '' }))
-  on('tool.call', () => ({ result: 'ok' }))
   answerStartup(on)
   await $.session.start({ cwd: '/work/be-api', surface: 'terminal', isInteractive: true })
   await $.tool.call({ tool: 'Write', file_path: '/work/fe-eshop/.flow/pharmacy-list-lazy/plan.md', content: '# plan' })
@@ -252,6 +259,7 @@ test('a task in the new layout is found under agents/state.json', async ($, on) 
   on('fs.read', ($, e) => ({ value: e.path.endsWith('.flow/lazy/agents/state.json') ? JSON.stringify(task) : '' }))
   answerStartup(on)
   await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/.flow/lazy/agents/state.json' })
 
   const pane = await $.ui.mount({ plugin: 'devflow', surface: 'terminal', component: 'Pane', requestId: 'devflow', props: PANE_PROPS })
   await pane.drawn()
@@ -279,6 +287,7 @@ test('fixes asked for at the end show up as follow-ups under finish', async ($, 
   answerStartup(on)
   on('turn.start', () => ({ turnId: 't1' }))
   await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/.flow/lazy/agents/state.json' })
   await $.turn.start({ text: 'sort the list by date too', turnId: 't1' })
 
   const pane = await $.ui.mount({ plugin: 'devflow', surface: 'terminal', component: 'Pane', requestId: 'devflow', props: PANE_PROPS })
@@ -292,4 +301,88 @@ test('fixes asked for at the end show up as follow-ups under finish', async ($, 
   await band.drawn()
   expect(await band.find({ type: 'Text', text: /finish › follow-up 2 · Sort the list by date/ })).toBeDefined()
   await band.unmount()
+})
+
+test('a task another session started stays hidden until this session works on it', async ($, on) => {
+  const opened: string[] = []
+  mock.clock(on, { now: 61_000 })
+  on('fs.exists', ($, e) => ({ value: e.path.endsWith('.flow') }))
+  on('fs.list', ($, e) => ({
+    value: e.path.endsWith('.flow') ? [{ name: 'order-status', kind: 'dir' as const, size: 0, mtimeMs: 0, isLink: false }] : [],
+  }))
+  on('fs.stat', () => ({ value: { kind: 'file' as const, size: 100, mtimeMs: 60_000, isLink: false } }))
+  on('fs.read', () => ({ value: JSON.stringify(SAMPLE.state) }))
+  on('tool.call', () => ({ result: 'ok' }))
+  on('session.start', ($, e) => ({ cwd: e.cwd }))
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
+  on('ui.open', ($, e) => {
+    opened.push(String(e.id))
+    return { value: { isPlaced: true as const } }
+  })
+  on('ui.toast', () => ({ value: undefined }))
+  on('session.model', () => ({ value: 'claude-opus-5-5' }))
+  on('settings.read', () => ({ value: {} }))
+  on('session.usage', () => ({ value: { startedAt: 0, context: { tokens: 1, window: 2, percent: 50 }, rateLimits: [] } }))
+  await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+
+  // a fresh session in a project where another session runs a devflow task (the band reads the same task)
+  expect(opened).toEqual([])
+  const pane = await $.ui.mount({ plugin: 'devflow', surface: 'terminal', component: 'Pane', requestId: 'devflow', props: PANE_PROPS })
+  await pane.drawn()
+  expect(await pane.find({ type: 'Text', text: /no active task/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /Order status endpoint/ })).toBeUndefined()
+  await pane.unmount()
+
+  // this session resumes it: from now on it is this session's task
+  await $.tool.call({ tool: 'Read', file_path: '/repo/.flow/order-status/agents/state.json' })
+  const resumed = await $.ui.mount({ plugin: 'devflow', surface: 'terminal', component: 'Pane', requestId: 'devflow', props: PANE_PROPS })
+  await resumed.drawn()
+  expect(await resumed.find({ type: 'Text', text: /Order status endpoint/ })).toBeDefined()
+  await resumed.unmount()
+})
+
+test('the panel shows how far you are through the review guide', async ($, on) => {
+  const task = { task: 'lazy', title: 'Lazy pharmacy list', tier: 'full', phase: 'finish', step: 'clean-up' }
+  const guide = '# Review guide\n- [x] Is this what you wanted?\n- [ ] Does the cursor survive a refresh?\n- [ ] Try it\n'
+  mock.clock(on, { now: 61_000 })
+  on('fs.stat', () => ({ value: { kind: 'file' as const, size: 100, mtimeMs: 60_000, isLink: false } }))
+  on('fs.read', ($, e) => ({ value: e.path.endsWith('review-guide.md') ? guide : JSON.stringify(task) }))
+  answerStartup(on)
+  on('turn.start', () => ({ turnId: 't1' }))
+  await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/.flow/lazy/agents/state.json' })
+  await $.turn.start({ text: 'go on', turnId: 't1' })
+
+  const pane = await $.ui.mount({ plugin: 'devflow', surface: 'terminal', component: 'Pane', requestId: 'devflow', props: PANE_PROPS })
+  await pane.drawn()
+  expect(await pane.find({ type: 'Text', text: /YOUR REVIEW/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /1\/3 checked/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /\/repo\/\.flow\/lazy\/review-guide\.md/ })).toBeDefined()
+  await pane.unmount()
+})
+
+test('a finished task stays on the panel, marked finished, after its working files are deleted', async ($, on) => {
+  const task = { task: 'lazy', title: 'Lazy pharmacy list', tier: 'full', phase: 'finish', step: 'clean-up' }
+  let isDeleted = false
+  const clock = mock.clock(on, { now: 61_000 })
+  on('fs.stat', () => {
+    if (isDeleted) throw new Error('ENOENT')
+    return { value: { kind: 'file' as const, size: 100, mtimeMs: 60_000, isLink: false } }
+  })
+  on('fs.read', () => ({ value: JSON.stringify(task) }))
+  answerStartup(on)
+  await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/.flow/lazy/agents/state.json' })
+
+  // the clean-up deletes the folder, state.json with it
+  isDeleted = true
+  await clock.advance(2_500)
+
+  const pane = await $.ui.mount({ plugin: 'devflow', surface: 'terminal', component: 'Pane', requestId: 'devflow', props: PANE_PROPS })
+  await pane.drawn()
+  expect(await pane.find({ type: 'Text', text: /no active task/ })).toBeUndefined()
+  expect(await pane.find({ type: 'Text', text: /Lazy pharmacy list/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /✓ finished/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /stopped/ })).toBeUndefined()
+  await pane.unmount()
 })

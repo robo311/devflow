@@ -38,7 +38,13 @@ export type FlowState = {
   }
 }
 
-export type FlowView = { path: string; mtimeMs: number; state: FlowState }
+export type FlowView = {
+  path: string
+  mtimeMs: number
+  state: FlowState
+  /** `review-guide.md` next to the task's files: its path and how many of its boxes are ticked. */
+  guide?: { path: string; mtimeMs: number; done: number; total: number }
+}
 
 export type AgentRow = {
   id: string
@@ -72,8 +78,8 @@ declare module 'claude-code' {
       session: SessionInfo | null
       /** The main loop: a turn is running, an AskUserQuestion dialog is open in it, and when its last turn started and ended. */
       main: { isWorking: boolean; isAsking: boolean; turnStartedAt?: number; turnEndedAt?: number }
-      /** Project folders outside the session's own whose `.flow/` a tool call touched. */
-      roots: string[]
+      /** The task folders (`.flow/<slug>`, `.flow/reviews/<ts>`) this session's tool calls touched: the only tasks it shows. */
+      tasks: string[]
     }
   }
 }

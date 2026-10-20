@@ -12,7 +12,8 @@ import {
   currentSteps,
   describeCall,
   encodeCells,
-  flowRootsIn,
+  flowTasksIn,
+  guideProgress,
   hex,
   laneCells,
   loadColor,
@@ -40,7 +41,7 @@ const agents = atom({ plugin: 'devflow', key: 'agents' } as const, [])
 const now = atom({ plugin: 'devflow', key: 'now' } as const, 0)
 const session = atom({ plugin: 'devflow', key: 'session' } as const, null)
 const main = atom({ plugin: 'devflow', key: 'main' } as const, { isWorking: false, isAsking: false })
-const roots = atom({ plugin: 'devflow', key: 'roots' } as const, [])
+const tasks = atom({ plugin: 'devflow', key: 'tasks' } as const, [])
 
 const SEVERITIES = ['critical', 'high', 'medium', 'low'] as const
 // the band sits right under Claude's own orange spinner, so devflow draws in colours of its own
@@ -59,23 +60,14 @@ function isStopped(state: FlowState, doing: string, runningCount: number): boole
 
 /** A task's state file: `agents/state.json`, or `state.json` at the top in a task from before 0.2.1. */
 const stateFiles = (folder: string) => [`${folder}/agents/state.json`, `${folder}/state.json`]
+const taskFolder = (statePath: string) => statePath.replace(/(\/agents)?\/state\.json$/, '')
 
-/** The newest task state in the session's `.flow/` and in any other project's `.flow/` devflow worked in. */
-async function findFlow($: EngineInterface, elsewhere: string[]): Promise<{ path: string; mtimeMs: number } | null> {
-  const candidates: string[] = []
-  for (const base of ['.flow', ...elsewhere.map(root => `${root}/.flow`)]) {
-    if (!(await $.fs.exists(base).catch(() => false))) continue
-    for (const entry of await $.fs.list(base).catch(() => [])) {
-      if (entry.kind !== 'dir') continue
-      if (entry.name === 'reviews') {
-        for (const review of await $.fs.list(`${base}/reviews`).catch(() => [])) {
-          if (review.kind === 'dir') candidates.push(...stateFiles(`${base}/reviews/${review.name}`))
-        }
-      } else {
-        candidates.push(...stateFiles(`${base}/${entry.name}`))
-      }
-    }
-  }
+/**
+ * The newest state among the tasks this session worked on. Another session's task in the same
+ * project stays out until this session touches it, as `run --resume` does.
+ */
+async function findFlow($: EngineInterface, folders: string[]): Promise<{ path: string; mtimeMs: number } | null> {
+  const candidates = folders.flatMap(stateFiles)
   let newest: { path: string; mtimeMs: number } | null = null
   for (const path of candidates) {
     const stat = await $.fs.stat(path).catch(() => undefined)
@@ -86,8 +78,10 @@ async function findFlow($: EngineInterface, elsewhere: string[]): Promise<{ path
 
 function isActive(view: FlowView | null, at: number): boolean {
   if (!view) return false
-  if (view.state.phase !== 'done') return at - view.mtimeMs < 12 * 60 * 60 * 1000
-  return at - view.mtimeMs < ACTIVE_MS
+  // ticking boxes in the review guide counts as working on the task
+  const touched = Math.max(view.mtimeMs, view.guide?.mtimeMs ?? 0)
+  if (view.state.phase !== 'done') return at - touched < 12 * 60 * 60 * 1000
+  return at - touched < ACTIVE_MS
 }
 
 let narrationOn = true
@@ -97,11 +91,14 @@ const narratedCount = new Map<string, number>()
 
 async function poll($: EngineInterface) {
   const at = await $.clock.now()
-  const found = await findFlow($, await read($, roots)).catch(() => null)
+  const found = await findFlow($, await read($, tasks)).catch(() => null)
   const held = await read($, flow)
 
   if (!found) {
-    if (held) await update($, flow, () => null)
+    // the task's files were cleaned up: keep the task on screen as it was, finished
+    if (held && held.state.phase !== 'done') {
+      await update($, flow, view => (view ? { ...view, state: { ...view.state, phase: 'done', waitingFor: null } } : view))
+    }
   } else if (!held || held.path !== found.path || held.mtimeMs !== found.mtimeMs) {
     const text = await $.fs.read(found.path).catch(() => '')
     let state: FlowState | null = null
@@ -124,6 +121,19 @@ async function poll($: EngineInterface) {
           if (!opened.isPlaced) $.ui.toast('devflow: the live panel is ready. Type /devflow-status to open it.')
         })
       }
+    }
+  }
+
+  // the review guide changes on its own, as the developer ticks its boxes
+  const current = await read($, flow)
+  if (current) {
+    const guidePath = `${taskFolder(current.path)}/review-guide.md`
+    const stat = await $.fs.stat(guidePath).catch(() => undefined)
+    if (!stat) {
+      if (current.guide) await update($, flow, view => (view ? { ...view, guide: undefined } : view))
+    } else if (current.guide?.mtimeMs !== stat.mtimeMs) {
+      const progress = guideProgress(await $.fs.read(guidePath).catch(() => ''))
+      await update($, flow, view => (view ? { ...view, guide: { path: guidePath, mtimeMs: stat.mtimeMs, ...progress } } : view))
     }
   }
 
@@ -202,7 +212,7 @@ export const register: Register = (on, options) => {
   on('command.run', { command: 'devflow-status' }, async $ => {
     await $.ui.open({ id: PANE, title: 'devflow' })
     const view = await read($, flow)
-    if (!view) return { text: 'No devflow task found in .flow/ of this project.' }
+    if (!view) return { text: 'No devflow task in this session. Start one with /devflow:run, or continue one with /devflow:run --resume <task>.' }
     const s = view.state
     const isAgentRunning = (await read($, agents)).some(agent => agent.endedAt === undefined)
     const waiting = activity(s.waitingFor, { ...(await read($, main)), isAgentRunning }) === 'waiting' ? ` · waiting for you: ${s.waitingFor ?? 'your answer'}` : ''
@@ -232,13 +242,13 @@ export const register: Register = (on, options) => {
   }).catch(($, e, next) => next(e))
 
   on('tool.call', async ($, e, next) => {
-    // a task planned in another repository: watch that project's .flow/ too, and show it now
-    const touched = flowRootsIn(e as unknown as Record<string, unknown>)
-    const known = await read($, roots)
-    const added = touched.filter(root => !known.includes(root))
+    // a task this session starts, resumes or reviews, here or in another repository: show it now
+    const touched = flowTasksIn(e as unknown as Record<string, unknown>)
+    const known = await read($, tasks)
+    const added = touched.filter(folder => !known.includes(folder))
     if (added.length > 0) {
-      await update($, roots, list => [...list, ...added])
-      void poll($)
+      await update($, tasks, list => [...list, ...added])
+      await poll($)
     }
     // a question dialog on the main loop: the turn runs, but it waits for the developer
     if (!e.agentId && e.tool === 'AskUserQuestion') {
@@ -520,7 +530,7 @@ export const register: Register = (on, options) => {
             <Text color="claude" bold>
               ◆ devflow
             </Text>
-            <Text dimColor>{'  no active task · start one with /devflow:run'}</Text>
+            <Text dimColor>{'  no active task in this session · start one with /devflow:run'}</Text>
           </Text>
           {sessionBlock}
           {(list.length > 0 || mainState.turnStartedAt !== undefined) && (
@@ -574,6 +584,11 @@ export const register: Register = (on, options) => {
           {doing === 'working' && (
             <Text color={WORKING} bold>
               {'  ● working'}
+            </Text>
+          )}
+          {s.phase === 'done' && (
+            <Text color="success" bold>
+              {'  ✓ finished'}
             </Text>
           )}
           {stopped && (
@@ -644,6 +659,17 @@ export const register: Register = (on, options) => {
             )
           })}
         </Box>
+
+        {view.guide && view.guide.total > 0 && (
+          <Box flexDirection="column">
+            {heading('Your review', `${view.guide.done}/${view.guide.total} checked`)}
+            <Box>
+              <Text>{' '}</Text>
+              {bar('guide', barCells(barWidth, scaled(view.guide.done, view.guide.total, barWidth), view.guide.done === view.guide.total ? COLORS.verifier : COLORS.review))}
+            </Box>
+            <Text dimColor wrap="truncate-end">{` tick the boxes in ${view.guide.path}`}</Text>
+          </Box>
+        )}
 
         {(s.parts ?? []).length > 0 && (
           <Box flexDirection="column">

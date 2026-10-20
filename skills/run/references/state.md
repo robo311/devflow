@@ -2,13 +2,14 @@
 
 ## Layout
 
-Every task lives in `.flow/<slug>/` (a standalone review in `.flow/reviews/<YYYYMMDD-HHMMSS>/`). What the developer reads sits at the top; the files agents hand to each other sit in `agents/`, which can be deleted once the task is done:
+Every task lives in `.flow/<slug>/` (a standalone review in `.flow/reviews/<YYYYMMDD-HHMMSS>/`). What the developer reads sits at the top; the files agents hand to each other sit in `agents/`, which can be deleted once the task is done, all but `state.json`, which keeps the task resumable:
 
 ```
 .flow/<slug>/
   plan.md          the approved plan, its tasks ticked as they are built
   review.md        the review report
   summary.md       what changed, for the developer
+  review-guide.md  what is worth the developer's own review, as checkboxes
   changelog.md     the same, in plain words for whoever raised the task
   agents/          working files
     state.json                  where the task is (read by the skills and the live view)

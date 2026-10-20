@@ -29,7 +29,7 @@ With `--resume`, read `.flow/<slug>/agents/state.json` (`.flow/<slug>/state.json
 - `plan` with `plan.md` saying `Status: approved`: step 2.
 - `implement` with every part done: the review in step 2 (the `review` skill with `--task <slug>`), unless `state.json` lists `review` under `skipped`.
 - `review` with `review.md` written: step 3.
-- `summary` with `summary.md` and `changelog.md` written: step 4.
+- `summary` with `summary.md`, `review-guide.md` and `changelog.md` written: step 4.
 
 ## 1. Plan
 
@@ -57,12 +57,13 @@ Look for finishing steps this project defines: instructions in `CLAUDE.md` / `AG
 
 The files in `.flow/<slug>/` are the developer's. Nothing there is deleted without their explicit answer.
 
-1. Ask whether the whole task is truly done. List anything still open (findings, suggestions, unverified assumptions, failed checks, follow-ups the review never saw) in the question so the answer is informed. When it is not done, keep everything, say what is left, and stop here.
-2. When it is done, ask what to do with the files, in one question:
-   - keep your files (`plan.md`, `review.md`, `summary.md`, `changelog.md`) and delete the agents' working files in `agents/` (Recommended),
+1. Point to the developer's own review first: count the ticked boxes in `review-guide.md` (`- [x]`). With boxes left, name the sections still open and recommend working through them before calling the task done.
+2. Ask whether the whole task is truly done. List anything still open (findings, suggestions, unverified assumptions, failed checks, follow-ups the review never saw, unticked review-guide checks) in the question so the answer is informed. When it is not done, keep everything, say what is left, and stop here.
+3. When it is done, ask what to do with the files, in one question:
+   - keep your files (`plan.md`, `review.md`, `summary.md`, `review-guide.md`, `changelog.md`) and delete the agents' working files in `agents/`, all but `state.json` (Recommended),
    - delete everything,
    - keep everything.
-3. Delete exactly what they chose inside `.flow/<slug>/`, and `.flow/` only if it is left empty. Set `phase: done` in `state.json` when it is kept.
+4. Set `phase: done` and `step: done` in `state.json` first, so the live view shows the task finished. Then delete exactly what they chose inside `.flow/<slug>/`, and `.flow/` only if it is left empty. A kept `state.json` is what lets a later follow-up or `--resume` continue this task where it ended.
 
 ## Follow-ups
 
@@ -74,5 +75,5 @@ Once the summary is shown, the developer may ask for a fix or something new befo
    - **Bigger, inside the task**: an implementer with a brief at `agents/implementer-<n>-brief.md`, numbered on from the last one, as the `implement` skill does.
    - **New work beyond the task** (a feature of its own, another area): say so, set its status to `moved`, and offer to start it as a new task with `/devflow:run`. Build nothing for it here.
 3. Run the project checks that cover the change, then set its status to `done`.
-4. Add it to `summary.md` and `changelog.md` under **Follow-ups**, marked not reviewed: the review ran before it.
+4. Add it to `summary.md` and `changelog.md` under **Follow-ups**, marked not reviewed: the review ran before it. Add a check for it under "Read these" in `review-guide.md`, unticked, as the guide's format describes.
 5. Go back to where the run was: the finishing steps or the clean-up question. When the follow-ups changed more than a few lines, recommend a review of them (`/devflow:review`) before the task is called done.

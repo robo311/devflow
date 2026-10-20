@@ -73,6 +73,7 @@ echo ".flow/" >> .git/info/exclude
 cat > .flow/order-status/plan.md <<'EOF'
 ## Order status endpoint
 Status: approved
+Build: sonnet + opus
 Tier: light (one small endpoint following an existing pattern) · review: deep (public API contract)
 
 Intent:      API consumers can fetch just an order's status.
@@ -84,7 +85,7 @@ Decisions:   response is { "status": order.status }  [you]
              missing order → 404 via respondError, same as GET /orders/:id  [you]
 
 ### Parts
-1. Order status endpoint  (layer: be · depends on: none)
+1. Order status endpoint  (layer: be · model: sonnet · depends on: none)
    Changes:    src/handlers/orders.js, src/routes.js, test/orders.test.js
    Acceptance: GET /orders/:id/status returns 200 { status } for an existing order;
                returns 404 { error: { code: "not_found", ... } } for a missing one.

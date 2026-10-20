@@ -2,7 +2,7 @@ import type { FlowState } from '../types'
 
 export const PHASES = ['plan', 'implement', 'review', 'summary', 'finish'] as const
 
-const PLAN_STEPS = ['ground', 'decide', 'builder-check', 'approve']
+const PLAN_STEPS = ['ground', 'decide', 'write', 'builder-check', 'approve']
 const REVIEW_STEPS = ['packet', 'find', 'verify', 'fix', 'round-2', 'report']
 
 export type Mark = 'done' | 'current' | 'pending' | 'skipped'
@@ -32,7 +32,9 @@ export function currentSteps(state: FlowState): { name: string; mark: Mark }[] {
       mark: (item.status === 'working' ? 'current' : 'done') as Mark,
     }))
   }
-  const names = state.phase === 'plan' ? PLAN_STEPS : state.phase === 'review' ? REVIEW_STEPS : []
+  // only a full plan gets a builder check
+  const planSteps = state.tier === 'light' ? PLAN_STEPS.filter(name => name !== 'builder-check') : PLAN_STEPS
+  const names = state.phase === 'plan' ? planSteps : state.phase === 'review' ? REVIEW_STEPS : []
   const at = names.indexOf(state.step ?? '')
   return names.map((name, index) => ({
     name,
@@ -84,6 +86,7 @@ export function agentStatus(agent: { startedAt: number; endedAt?: number }, at: 
 const STEP_LABEL: Record<string, string> = {
   ground: 'read the project',
   decide: 'questions',
+  write: 'write plan',
   'builder-check': 'plan check',
   approve: 'approval',
   integrate: 'final checks',
@@ -98,7 +101,8 @@ const STEP_LABEL: Record<string, string> = {
 const STEP_HINT: Record<string, string> = {
   ground: 'reading your docs and code',
   decide: 'settling open decisions with you',
-  'builder-check': 'a fresh agent reads the plan as the builder would',
+  write: 'writing the plan and its parts',
+  'builder-check': 'fresh agents read the plan as the builder would',
   approve: 'your go-ahead to build',
   part: 'an implementer builds this part',
   integrate: 'project checks over the whole change',

@@ -2,6 +2,12 @@
 
 All notable changes to devflow. Versions follow the `version` in `.claude-plugin/plugin.json`; Claude Code offers an update when it changes.
 
+## 0.2.3
+
+- Live view: the plan's sub-steps now follow the work. The plan skill writes `step` at the start of every step, so "questions" no longer stays highlighted while the plan is written and checked; a new **write plan** step shows the writing, and a `light` plan, which has no builder check, no longer shows one.
+- Faster builder check: the plan-checker verifies the claims the build rests on and checks the blast radius per changed contract, instead of every claim in the plan; a part that would need a long search becomes a question. Plans with four or more parts get two or three checkers in parallel, each taking a share of the parts.
+- Implementers run on Sonnet or Opus by part: the plan gives each part a model (Opus for risk paths, contracts that consumers or other parts depend on, a new project's foundation or parts with nothing to follow; Sonnet otherwise), and approval offers **Implement with Sonnet + Opus** or **Implement with Opus**. A Sonnet run that comes back unfinished, or blocked on something already answered, is re-run on Opus.
+
 ## 0.2.2
 
 - A finished task stays on the panel, marked finished, instead of turning into "no active task": clean-up sets `phase: done` first and keeps `agents/state.json` (the recommended choice deletes the other working files), so a later follow-up or `--resume` carries on from there. If the task's files are deleted anyway, the panel keeps its last view and marks it finished.

@@ -30,6 +30,21 @@ test('review steps are marked against the current step', async () => {
   expect(steps.map(step => step.mark)).toEqual(['done', 'done', 'current', 'pending', 'pending', 'pending'])
 })
 
+test('plan steps move past the questions while the plan is written and checked', async () => {
+  const steps = currentSteps({ phase: 'plan', tier: 'full', step: 'builder-check' })
+  expect(steps).toEqual([
+    { name: 'ground', mark: 'done' },
+    { name: 'decide', mark: 'done' },
+    { name: 'write', mark: 'done' },
+    { name: 'builder-check', mark: 'current' },
+    { name: 'approve', mark: 'pending' },
+  ])
+  expect(stepLabel('write', {})).toBe('write plan')
+  // a light plan has no builder check, so it never shows one as done
+  const light = currentSteps({ phase: 'plan', tier: 'light', step: 'approve' })
+  expect(light.map(step => step.name)).toEqual(['ground', 'decide', 'write', 'approve'])
+})
+
 test('implement steps follow the parts', async () => {
   const steps = currentSteps({
     phase: 'implement',

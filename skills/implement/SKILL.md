@@ -16,15 +16,17 @@ References:
 
 ## 1. Load the plan
 
-Read `.flow/<slug>/plan.md`. It must say `Status: approved`; when it does not, or there is no plan, say so and offer to run the `plan` skill first. Note the tier, the review depth and the parts.
+Read `.flow/<slug>/plan.md`. It must say `Status: approved`; when it does not, or there is no plan, say so and offer to run the `plan` skill first. Note the tier, the review depth, the parts and the model each part names.
 
-Keep `.flow/<slug>/agents/state.json` current as `${CLAUDE_PLUGIN_ROOT}/skills/run/references/state.md` describes: set `phase: implement`, list the parts, and update each part's status as it moves. When `state.json` has no `base`, record `git rev-parse HEAD` as it before the first part starts.
+The `Build:` line under `Status: approved` is the developer's choice of models: `sonnet + opus` runs each part on the model the plan names, `opus` runs every part on Opus. A plan kept for later has no `Build:` line: ask the developer before the first part, with the two Implement options and their descriptions from the `plan` skill's Approve step, and add the line with their answer.
+
+Keep `.flow/<slug>/agents/state.json` current as `${CLAUDE_PLUGIN_ROOT}/skills/run/references/state.md` describes: set `phase: implement`, list the parts with the `model` each runs on, and update each part's status as it moves. When `state.json` has no `base`, record `git rev-parse HEAD` as it before the first part starts.
 
 ## 2. Schedule
 
 Order the parts by their `depends on`. A `be` part whose contract an `fe` part uses always comes first. Parts run in parallel only when they depend on nothing unfinished and share no files; everything else runs one after another.
 
-Then decide how many implementers the work needs. One implementer per part is the default for parts of real size. Small parts in the same layer that would run one after another anyway go to one implementer in one brief: a fresh agent for a few lines spends more reading its way in than building. Never split a part across implementers; when a part looks too big for one, say so and re-plan it with the developer instead.
+Then decide how many implementers the work needs. One implementer per part is the default for parts of real size. Small parts in the same layer that would run one after another anyway go to one implementer in one brief: a fresh agent for a few lines spends more reading its way in than building. A grouped brief runs on Opus when any of its parts does. Never split a part across implementers; when a part looks too big for one, say so and re-plan it with the developer instead.
 
 ## 3. Brief
 
@@ -49,7 +51,7 @@ Gather missing facts with `devflow:explorer` before writing the brief, not insid
 
 ## 4. Build
 
-Dispatch each brief to the implementer for its layer: `devflow:implementer-be`, `devflow:implementer-fe`, or `devflow:implementer` for anything else. Pass the brief's path.
+Dispatch each brief to the implementer for its layer: `devflow:implementer-be`, `devflow:implementer-fe`, or `devflow:implementer` for anything else. Pass the brief's path, and the part's model as the Agent tool's `model` (`sonnet` or `opus`), always: it overrides the implementer's own `model: opus`, which applies only when none is passed.
 
 Work small enough to finish without reading more code (a few lines in one file you already know) you build yourself instead: invoke the `code-rules` skill (and `fe-rules` / `be-rules` for its layer), follow `implementer.md`, tick its tasks in the plan and write its report the same way.
 
@@ -58,6 +60,7 @@ When a report comes back:
 - `DONE`: check that every task of its parts is ticked in `plan.md`, that its acceptance criteria are each backed by a test or a check, and that its `Contract` matches what dependent parts expect. A task left unticked without a reason in the report makes it `PARTIAL`. Then continue.
 - `BLOCKED`: answer the question from the plan or the project when they settle it; otherwise ask the developer. Re-dispatch the part with the answer added to its brief.
 - `PARTIAL`: re-dispatch with the report, so the implementer continues where it stopped.
+- A Sonnet run that comes back `PARTIAL`, or `BLOCKED` on something the brief, plan or project already answers: re-dispatch it on Opus, and set the part's `model` to `opus` in `state.json`. A real open decision, once answered, stays on Sonnet.
 - No report file, or no `Status:` line in it: treat it as `PARTIAL`.
 
 Re-dispatch a part at most twice for the same reason. After that, mark it `blocked` in `state.json` and bring it to the developer with what is missing.

@@ -100,7 +100,7 @@ Each phase also works on its own:
 |---|---|
 | `/devflow:run <task>` | The whole flow: plan → implement → review → summary → finish |
 | `/devflow:run --resume [slug]` | Continue a task where it stopped (after a restart or a long break) |
-| `/devflow:plan <task>` | Plan, then ask: implement now, discuss it first, or keep it for later (`--tier` to force a tier) |
+| `/devflow:plan <task>` | Plan, then ask: implement now (Sonnet + Opus by part, or all Opus), discuss it first, or keep it for later (`--tier` to force a tier) |
 | `/devflow:implement <slug>` | Build an approved plan from `.flow/<slug>/` (`--no-review` to skip the review) |
 | `/devflow:review` | Review your uncommitted work, untracked files included |
 | `/devflow:review main` | Review everything that differs from `main` (any branch or commit works) |
@@ -113,7 +113,7 @@ Each phase also works on its own:
 | Skill | You call it? | What it does |
 |---|---|---|
 | **`run`** | yes | The coordinator. Chains the other skills, re-checks the tier at every phase, keeps `state.json` current, runs your project's finishing steps and asks before cleaning up. Small fixes it makes itself instead of spinning up an agent. |
-| **`plan`** | yes | Grounds itself in your docs and code, maps the blast radius, sizes the task, asks decisions in rounds with recommended answers, writes `.flow/<slug>/plan.md` with parts sized to the work and a task checklist for each, runs a builder check on `full` plans, and shows you a brief instead of the document. For a new project it proposes the foundation. |
+| **`plan`** | yes | Grounds itself in your docs and code, maps the blast radius, sizes the task, asks decisions in rounds with recommended answers, writes `.flow/<slug>/plan.md` with parts sized to the work, a task checklist and a model (Sonnet, or Opus for risky parts) for each, runs a builder check on `full` plans (two or three checkers in parallel for four or more parts), and shows you a brief instead of the document. For a new project it proposes the foundation. |
 | **`implement`** | yes | Decides how many implementers the parts need (small parts share one), writes their briefs, picks `implementer-be`, `implementer-fe` or `implementer`, runs independent parts in parallel, checks every report (DONE / BLOCKED / PARTIAL) and that every task in the plan is ticked, makes sure the parts fit together, then hands over to review. |
 | **`review`** | yes | Builds one packet (diff, intent, docs, project check results, risk paths, convention examples), dispatches the finder and verifiers, triages findings by severity and action, applies auto-fixes, asks you about the rest and about implementer suggestions, runs a fix-only round 2, and proposes `REVIEW.md` entries. |
 | **`summary`** | rarely | The end-of-task report: changes and why, behaviour now, open findings, unverified assumptions, suggestions for later. Writes `review-guide.md`, the checklist for your own review (what to read and why, decisions made for you, what to try, what nobody checked, what is safe to skim), and `changelog.md`, a plain-language version for whoever raised the task, ready to paste into the issue. |
@@ -143,8 +143,8 @@ The **coordinator** (your main Claude session) keeps the conversation and the bi
 | Agent | Model | Job |
 |---|---|---|
 | `explorer` | Sonnet | Answers concrete questions about the codebase with `file:line` evidence |
-| `plan-checker` | Opus | Reads the plan as the implementer would, before anything is built |
-| `implementer-be` / `implementer-fe` / `implementer` | Opus | Builds the part (or few small parts) in its brief, tests first, ticking the plan's tasks as it goes, with the matching rules preloaded |
+| `plan-checker` | Opus | Reads the plan as the implementer would, before anything is built, checking what the build rests on |
+| `implementer-be` / `implementer-fe` / `implementer` | Sonnet or Opus, by part | Builds the part (or few small parts) in its brief, tests first, ticking the plan's tasks as it goes, with the matching rules preloaded |
 | `finder` | Opus | Hunts for real defects in the change |
 | `verifier` | Opus | Tries to refute each finding; only survivors reach you |
 

@@ -37,7 +37,7 @@ Pick the tier and review depth with `tiers.md` and announce them in one line. A 
 
 ## 3. Decide
 
-Map the open decisions as a tree: each decision unlocks the ones that hang off it. Settle them in rounds.
+Set `step: decide` in `state.json`, also when there is nothing to ask. Map the open decisions as a tree: each decision unlocks the ones that hang off it. Settle them in rounds.
 
 - **Ask only what changes what gets built** and what the project cannot answer: where the feature belongs, what the developer actually wants, scope boundaries, trade-offs only they can weigh. When the request and the project settle everything, ask nothing.
 - **Guess where a wrong guess is cheap**: put it in the plan as `[my call]` or `ASSUMPTION` instead of asking. Ask where a wrong guess would mean rebuilding.
@@ -50,17 +50,27 @@ Done when every decision that changes what gets built is either answered by the 
 
 ## 4. Approach (`full`)
 
-Before writing, consider more than one way to build it and drop the weak ones, including any that fight what the developer said they want. Put the alternatives in the plan only when the choice between them matters to the developer.
+Set `step: write` in `state.json`: from here until the builder check, the live view shows the plan being written. Before writing, consider more than one way to build it and drop the weak ones, including any that fight what the developer said they want. Put the alternatives in the plan only when the choice between them matters to the developer.
 
 ## 5. Write
 
-Write the plan with `plan-format.md` to `.flow/<slug>/plan.md`. Size the parts by the work and give each its task checklist, as the format's Parts and Tasks sections describe. Copy its assumptions and blast radius into `state.json`.
+`light`: set `step: write` in `state.json` first. Write the plan with `plan-format.md` to `.flow/<slug>/plan.md`. Size the parts by the work, give each its task checklist and the model its implementer runs on, as the format's Parts, Tasks and Models sections describe. Copy its assumptions and blast radius into `state.json`.
 
 Every guess is tagged `[my call]` or `ASSUMPTION`; every fact about the project carries its evidence.
 
 ## 6. Builder check (`full`)
 
-Dispatch `devflow:plan-checker` with the plan's path. It reads the plan as the implementer would and returns what it would need to ask. Sort its questions:
+Set `step: builder-check` in `state.json`. Dispatch `devflow:plan-checker` with the plan's path. It reads the plan as the implementer would and returns what it would need to ask.
+
+A plan with four or more parts gets two or three checkers in parallel instead of one, so the check takes about as long as for a small plan. Give each a share of the parts, about three each, keeping a part with the parts whose contract it uses where you can; the first checker also gets the plan-wide sections. Prompt each with:
+
+```
+Plan: .flow/<slug>/plan.md
+Your parts: <numbers>
+Plan-wide sections: yes | no
+```
+
+Merge their answers into one list, dropping questions two checkers both asked. Sort the questions:
 
 - **Already answered** by the conversation or the project: put the answer in the plan.
 - **Minor**: a sensible implementer could settle it without changing what gets built. Settle it yourself and tag it `[my call]`.
@@ -70,20 +80,21 @@ Update the plan with the answers. The builder check runs once.
 
 ## 7. Approve
 
-Show the brief from `plan-format.md` in the conversation, not the whole plan, and ask what happens next, at every tier above `trivial`, with these options:
+Set `step: approve` in `state.json`. Show the brief from `plan-format.md` in the conversation, not the whole plan, and ask what happens next, at every tier above `trivial`, with these options:
 
-- **Implement** (recommended): the plan is approved and gets built now.
+- **Implement with Sonnet + Opus** (recommended): the plan is approved and gets built now, each part on the model the plan assigns it. Its description names the parts that go to Sonnet.
+- **Implement with Opus**: the plan is approved and gets built now, every part on Opus, for when the developer wants the most careful build over speed and cost.
 - **Discuss it first**: the developer wants to read the plan or talk it through. Answer their questions, apply the changes they ask for, and ask again.
 - **Keep it for later**: the plan is approved and stays in `.flow/<slug>/` for `/devflow:implement <slug>`; nothing is built now.
 
-Without one of these answers, nothing is built.
+When the plan puts every part on Opus, the two Implement options are the same: offer one, **Implement** (recommended). Without one of these answers, nothing is built.
 
 `full`: nothing gets built before approval. Building includes writing product code, scaffolding, installing dependencies and running generators. Reading and exploring are fine.
 
-Done when the developer chose Implement or Keep it for later. Add `Status: approved` under the plan's title, and set `waitingFor` back to `null` in `state.json`.
+Done when the developer chose an Implement option or Keep it for later. Add `Status: approved` under the plan's title, and under it the build choice: `Build: sonnet + opus` or `Build: opus` (none for Keep it for later; `implement` asks then). Set `waitingFor` back to `null` in `state.json`.
 
 ## 8. Hand off
 
 - The `run` skill called you: hand back to it with the plan's path and the developer's choice; it builds the plan, or stops for Keep it for later.
-- The developer chose **Implement**: invoke the `run` skill with `--resume <slug>` now, in this turn. It builds, reviews, summarises and tidies up, so the whole flow finishes. Choosing Implement means building starts; never stop at "the plan is approved".
+- The developer chose an **Implement** option: invoke the `run` skill with `--resume <slug>` now, in this turn. It builds, reviews, summarises and tidies up, so the whole flow finishes. Choosing to implement means building starts; never stop at "the plan is approved".
 - The developer chose **Keep it for later**: tell them where the plan is and that `/devflow:implement <slug>` builds it.

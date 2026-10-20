@@ -37,7 +37,7 @@ Never put a working file at the top, and never put a file the developer is meant
   "skipped": [],
   "updatedAt": "2026-10-20T14:03:00Z",
   "parts": [
-    { "n": 1, "title": "Order status endpoint", "layer": "be", "agent": "implementer-be", "status": "done" }
+    { "n": 1, "title": "Order status endpoint", "layer": "be", "agent": "implementer-be", "model": "sonnet", "status": "done" }
   ],
   "checks": { "npm test": "pass", "npm run lint": "skipped: no lint script" },
   "assumptions": ["backend returns 401, not 403"],
@@ -53,16 +53,17 @@ Never put a working file at the top, and never put a file the developer is meant
 
 Values:
 - `phase`: `plan` · `implement` · `review` · `summary` · `finish` · `done`
-- `step`: the step inside the phase, as the skill names it (`ground`, `decide`, `builder-check`, `approve`; `part 2`, `integrate`; `packet`, `find`, `verify`, `fix`, `round-2`, `report`; `follow-up 1`)
+- `step`: the step inside the phase, as the skill names it (`ground`, `decide`, `write`, `builder-check`, `approve`; `part 2`, `integrate`; `packet`, `find`, `verify`, `fix`, `round-2`, `report`; `follow-up 1`)
 - `waitingFor`: `null` while working; otherwise a few words on what the developer must do (`plan approval`, `decision on F1, F3`, `answer for part 2`). Set it just before you ask, and back to `null` as the first thing you do after the developer answers.
 - `skipped`: phases left out on purpose, with the reason said in the conversation and the summary (`["review"]` for a task that changed no code)
+- part `model`: the model its implementer runs on, `sonnet` or `opus`, as the developer's build choice and the plan assign it
 - part `status`: `pending` · `running` · `done` · `blocked` · `partial`
 - `followUps`: fixes or additions the developer asked for after the summary, each `{ "n": 1, "ask": "<a few words>", "status": "working" }`; `status` is `working` · `done` · `moved` (it became a task of its own)
 - finding `status`: `open` · `fixed` · `kept` (the developer chose to leave it)
 
 ## Update points
 
-- **plan**: at its start (create the file: `title`, `phase: plan`, `step: ground`); when the tier is decided; each time a question round or approval starts (`waitingFor`) and ends; approved.
+- **plan**: at its start (create the file: `title`, `phase: plan`, `step: ground`); when the tier is decided; at the start of each later step (`step: decide`, `write`, `builder-check`, `approve`), even when the step asks nothing; each time a question round or approval starts (`waitingFor`) and ends; approved.
 - **implement**: phase start; each part dispatched, returned or blocked; integrate.
 - **review**: each step start; after verification (funnel counts); each decision asked and answered; report written.
 - **summary / finish**: phase start; each follow-up started and finished; `phase: done` at the end.

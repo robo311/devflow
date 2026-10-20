@@ -19,6 +19,7 @@ Change:      the files or areas that change, and how
 Behaviour:   what users, API consumers or data see differently: before → after ("none" for internal changes)
 Affects:     code outside the change that depends on it (callers, consumers, jobs), with path; "nothing else"
 Decisions:   only if any, each tagged [you] / [my call] / ASSUMPTION
+Model:       sonnet | opus (<reason, when opus>)
 Tasks:       - [ ] <task>
              - [ ] <task>
 Done when:   the observable checks: a test that fails now and passes after,
@@ -51,8 +52,9 @@ Only when real alternatives existed: the chosen one, the others in one line each
 with why they lost.
 
 ### Parts
-1. <part title>  (layer: be | fe | other · depends on: <part numbers> · repo: <when several>)
+1. <part title>  (layer: be | fe | other · model: sonnet | opus · depends on: <part numbers> · repo: <when several>)
    Changes:    files or areas
+   Model:      only for opus: why this part needs it
    Acceptance: observable criteria, each one testable
    Tasks:
    - [ ] <task>
@@ -90,7 +92,7 @@ The developer approves from a brief in the conversation, not by reading the plan
 ```
 **<task title>** · Tier: <tier> · review: <depth>
 Foundation:    <new project only: stack · structure · architecture, in one line>
-Outline:       1. <part in one line>  2. <part in one line> ...
+Outline:       1. <part in one line> (sonnet | opus)  2. <part in one line> (sonnet | opus) ...
 Behaviour:     <before → after, only what users, consumers or data see>
 Blast radius:  <affected code outside the parts, with path; or "nothing beyond the parts">
 Check these:   <the [my call] and ASSUMPTION items worth the developer's attention, most important first, at most five>
@@ -114,3 +116,15 @@ Most `full` tasks have two to four parts. Parts that share no files can run in p
 Each part lists its tasks: the concrete steps that build it, in the order they will be done, as Markdown checkboxes (`- [ ] <task>`). A task is one step a reviewer could check off by looking at the change: "add `getOrderStatus` to `src/handlers/orders.js`", "register `GET /orders/:id/status`", "test the 404 case". Two to six tasks per part is typical; a task that would take one line of code merges into its neighbour.
 
 The implementer ticks a task (`- [x]`) in this file when it is built and its test or check passes, so the plan shows progress as the work moves. Write every task unticked.
+
+## Models
+
+Each part names the model its implementer runs on. The developer chooses at approval between this split and Opus for every part, so the split is your recommendation of where Sonnet is enough.
+
+Give a part **Opus** when it:
+- touches a risk path (`tiers.md`),
+- changes a contract existing consumers rely on, or defines one another part of this plan builds against: an endpoint, a schema, shared types, events,
+- lays a new project's foundation,
+- has no existing code in the project to follow, or rests on an `ASSUMPTION` the implementer may have to revisit while building.
+
+Give every other part **Sonnet**: it follows code the plan names, and its facts, tasks and acceptance criteria leave nothing to judge. When unsure, Opus.

@@ -20,7 +20,7 @@ Read `.flow/<slug>/plan.md`. It must say `Status: approved`; when it does not, o
 
 The `Build:` line under `Status: approved` is the developer's choice of models: `sonnet + opus` runs each part on the model the plan names, `opus` runs every part on Opus. A plan kept for later has no `Build:` line: ask the developer before the first part, with the two Implement options and their descriptions from the `plan` skill's Approve step, and add the line with their answer.
 
-Keep `.flow/<slug>/agents/state.json` current as `${CLAUDE_PLUGIN_ROOT}/skills/run/references/state.md` describes: set `phase: implement`, list the parts with the `model` each runs on, and update each part's status as it moves. When `state.json` has no `base`, record `git rev-parse HEAD` as it before the first part starts.
+Keep `.flow/<slug>/agents/state.json` current as `${CLAUDE_PLUGIN_ROOT}/skills/run/references/state.md` describes: set `phase: implement`, list the parts with the `model` each runs on, and update each part's status, `startedAt` and `finishedAt` as it moves. When `state.json` has no `base`, record `git rev-parse HEAD` as it before the first part starts.
 
 ## 2. Schedule
 
@@ -71,7 +71,7 @@ Done when every part's report says `DONE`.
 
 ## 5. Integrate
 
-Run the project checks over the whole change. When parts meet (a page calling a new endpoint, a job using a new service), confirm they fit: types, names, payloads, error handling on both sides. Fix gaps through the part that owns them.
+Only when more than one implementer run built the change; a single run has already run its checks, and the review runs them again. Run the project checks over the whole change. When parts meet (a page calling a new endpoint, a job using a new service), confirm they fit: types, names, payloads, error handling on both sides. Fix gaps through the part that owns them.
 
 ## 6. Review
 

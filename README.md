@@ -106,6 +106,7 @@ Each phase also works on its own:
 | `/devflow:review main` | Review everything that differs from `main` (any branch or commit works) |
 | `/devflow:review --report-only` | Report findings without changing a file (`--depth quick\|standard\|deep` to raise the depth) |
 | `/devflow:summary <slug>` | Re-show a finished task's summary |
+| `/devflow:analyze <task or idea>` | Before deciding: can it be done here, what it needs and affects, the options and trade-offs, in plain language (`.flow/<slug>/analysis.md`); changes nothing |
 | `/devflow-status` | Open the live panel |
 
 ## Skills
@@ -116,8 +117,9 @@ Each phase also works on its own:
 | **`plan`** | yes | Grounds itself in your docs and code, maps the blast radius, sizes the task, asks decisions in rounds with recommended answers, writes `.flow/<slug>/plan.md` with parts sized to the work, a task checklist and a model (Sonnet, or Opus for risky parts) for each, runs a builder check on `full` plans (two or three checkers in parallel for four or more parts), and shows you a brief instead of the document. For a new project it proposes the foundation. |
 | **`implement`** | yes | Decides how many implementers the parts need (small parts share one), writes their briefs, picks `implementer-be`, `implementer-fe` or `implementer`, runs independent parts in parallel, checks every report (DONE / BLOCKED / PARTIAL) and that every task in the plan is ticked, makes sure the parts fit together, then hands over to review. |
 | **`review`** | yes | Builds one packet (diff, intent, docs, project check results, risk paths, convention examples), dispatches the finder and verifiers, triages findings by severity and action, applies auto-fixes, asks you about the rest and about implementer suggestions, runs a fix-only round 2, and proposes `REVIEW.md` entries. |
+| **`analyze`** | yes | Standalone, never part of `run`. Reads your docs and code, follows the change to the jobs, reports, exports and outside systems it would touch, and writes `.flow/<slug>/analysis.md`: a verdict, what it would take, what it affects, options with trade-offs and size, risks and the decisions people need to make. Written for readers who don't read code, with the evidence in a closing section for developers. `plan` can start from it. |
 | **`summary`** | rarely | The end-of-task report: changes and why, behaviour now, open findings, unverified assumptions, suggestions for later. Writes `review-guide.md`, the checklist for your own review (what to read and why, decisions made for you, what to try, what nobody checked, what is safe to skim), and `changelog.md`, a plain-language version for whoever raised the task, ready to paste into the issue. |
-| **`code-rules`** | no | The rules every implementer follows: priority order, architecture, conventions, reuse, structure, comments that explain *why*, scope, errors, tests first, verification. |
+| **`code-rules`** | no | The rules every implementer follows: priority order, architecture, conventions, reuse, structure, comments that explain *why*, scope, errors, tests first. |
 | **`fe-rules`** | no | Frontend additions: follow the existing design, state and data flow, loading/error/empty states, API types, forms, accessibility, `Intl` formatting, media, SEO for public pages, client-side security. |
 | **`be-rules`** | no | Backend additions: follow the existing architecture, input validation, authorization, transactions, safe migrations, API contracts (and their specs), logging, queries, external calls, jobs. |
 
@@ -256,7 +258,7 @@ The mod has its own tests: `claude plugin test .`
 ## Repository layout
 
 ```text
-skills/        run · plan · implement · review · summary · code-rules · fe-rules · be-rules
+skills/        run · plan · implement · review · summary · analyze · code-rules · fe-rules · be-rules
 agents/        explorer · plan-checker · implementer(-be/-fe) · finder · verifier
 hooks/         the live band and panel (Claude Code mod)
 scripts/       snapshot.sh: working-tree snapshots for the fix-only round 2

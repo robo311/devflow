@@ -1,4 +1,4 @@
-import type { FlowState } from '../types'
+import type { FlowPart, FlowState } from '../types'
 
 export const PHASES = ['plan', 'implement', 'review', 'summary', 'finish'] as const
 
@@ -81,6 +81,55 @@ export function agentStatus(agent: { startedAt: number; endedAt?: number }, at: 
   return isRunning
     ? { isRunning, text: `running ${ago(at - agent.startedAt)}` }
     : { isRunning, text: `done in ${ago(agent.endedAt! - agent.startedAt)}` }
+}
+
+const time = (iso?: string) => {
+  const ms = iso ? Date.parse(iso) : NaN
+  return Number.isNaN(ms) ? undefined : ms
+}
+
+/**
+ * How long a phase took, from `phaseStarts`: up to the next phase recorded after it (skipped ones
+ * have none), or up to now while it is the current one. Undefined without its start.
+ */
+export function phaseDuration(state: FlowState, phase: string, at: number): number | undefined {
+  const starts = state.phaseStarts ?? {}
+  const start = time(starts[phase])
+  if (start === undefined) return undefined
+  const later = [...PHASES.slice(PHASES.indexOf(phase as (typeof PHASES)[number]) + 1), 'done']
+  const end = later.map(name => time(starts[name])).find(ms => ms !== undefined)
+  if (end !== undefined) return end - start
+  return phaseMark(state, phase) === 'current' ? at - start : undefined
+}
+
+/** How long the whole task took, or has taken so far, from its first recorded phase. */
+export function taskDuration(state: FlowState, at: number): number | undefined {
+  const starts = Object.values(state.phaseStarts ?? {}).map(time).filter((ms): ms is number => ms !== undefined)
+  if (starts.length === 0) return undefined
+  const end = time(state.phaseStarts?.done) ?? (state.phase === 'done' ? undefined : at)
+  return end === undefined ? undefined : end - Math.min(...starts)
+}
+
+/** How long a phase waited for the developer: its recorded `waited`, plus the wait still open in it. */
+export function phaseWaiting(state: FlowState, phase: string, at: number): number {
+  const since = time(state.waitingSince ?? undefined)
+  const open = since !== undefined && phase === state.phase ? at - since : 0
+  return (state.waited?.[phase] ?? 0) * 1000 + open
+}
+
+/** How long the whole task waited for the developer. */
+export function taskWaiting(state: FlowState, at: number): number {
+  const since = time(state.waitingSince ?? undefined)
+  const recorded = Object.values(state.waited ?? {}).reduce((sum, seconds) => sum + seconds, 0)
+  return recorded * 1000 + (since === undefined ? 0 : at - since)
+}
+
+/** How long a part's implementer ran: to its report, or to now while it runs (again). */
+export function partDuration(part: FlowPart, at: number): number | undefined {
+  const start = time(part.startedAt)
+  if (start === undefined) return undefined
+  const end = part.status === 'running' ? at : time(part.finishedAt)
+  return end === undefined ? undefined : end - start
 }
 
 const STEP_LABEL: Record<string, string> = {

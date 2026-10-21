@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: analyze-feasibility
+description: "Multi-currency support for a EUR-only project: the analysis must find what it touches, including an outside system, and write it for non-technical readers without changing code."
+expected_outcome: ".flow/<slug>/analysis.md with a verdict, the affected areas (invoices, daily revenue report, accounting export and its EUR-only importer), options and trade-offs, in plain language; no code changed."
+tags: [analyze]
+context:
+  scaffold_script: fixture.sh

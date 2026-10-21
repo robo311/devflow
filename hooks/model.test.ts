@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { activity, agentStatus, ago, flowTasksIn, guideProgress, mainStatus, nextPhase, stepHint, stepLabel, barCells, currentSteps, describeCall, encodeCells, laneCells, phaseMark } from './model'
+import { activity, agentStatus, ago, flowTasksIn, guideProgress, mainStatus, nextPhase, partDuration, phaseDuration, phaseWaiting, taskDuration, taskWaiting, stepHint, stepLabel, barCells, currentSteps, describeCall, encodeCells, laneCells, phaseMark } from './model'
 
 function decode(base64: string): number[] {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
@@ -130,6 +130,47 @@ test('the tasks a session works on are the .flow folders its tools touch', async
   expect(flowTasksIn({ command: 'ls -t .flow/*/agents/state.json .flow/reviews' })).toEqual([])
   expect(flowTasksIn({ command: 'cat ".flow/$slug/plan.md"; echo ".flow/" >> .git/info/exclude' })).toEqual([])
   expect(flowTasksIn({ command: 'npm test' })).toEqual([])
+})
+
+test('a phase lasts from its start to the next phase recorded, or to now while it runs', async () => {
+  const at = Date.parse('2026-10-20T14:30:00Z')
+  const state = {
+    phase: 'review',
+    skipped: ['summary'],
+    phaseStarts: { plan: '2026-10-20T13:20:00Z', implement: '2026-10-20T13:41:00Z', review: '2026-10-20T14:00:00Z' },
+  }
+  expect(phaseDuration(state, 'plan', at)).toBe(21 * 60_000)
+  expect(phaseDuration(state, 'implement', at)).toBe(19 * 60_000)
+  expect(phaseDuration(state, 'review', at)).toBe(30 * 60_000)
+  expect(phaseDuration(state, 'finish', at)).toBeUndefined()
+  // a skipped phase has no start; the one before it ends where the next recorded one begins
+  const finished = { ...state, phase: 'done', phaseStarts: { ...state.phaseStarts, finish: '2026-10-20T14:10:00Z', done: '2026-10-20T14:12:00Z' } }
+  expect(phaseDuration(finished, 'review', at)).toBe(10 * 60_000)
+  expect(phaseDuration(finished, 'finish', at)).toBe(2 * 60_000)
+  expect(phaseDuration(finished, 'summary', at)).toBeUndefined()
+  expect(taskDuration(state, at)).toBe(70 * 60_000)
+  expect(taskDuration(finished, at)).toBe(52 * 60_000)
+  // a task from before the timestamps shows none
+  expect(phaseDuration({ phase: 'review' }, 'plan', at)).toBeUndefined()
+  expect(taskDuration({ phase: 'review' }, at)).toBeUndefined()
+})
+
+test('waiting for the developer is counted per phase, the open wait included', async () => {
+  const at = Date.parse('2026-10-20T14:30:00Z')
+  const state = { phase: 'review', waited: { plan: 480, review: 60 }, waitingSince: '2026-10-20T14:28:00Z' }
+  expect(phaseWaiting(state, 'plan', at)).toBe(480_000)
+  expect(phaseWaiting(state, 'review', at)).toBe(180_000)
+  expect(phaseWaiting(state, 'implement', at)).toBe(0)
+  expect(taskWaiting(state, at)).toBe(660_000)
+  expect(taskWaiting({ phase: 'plan' }, at)).toBe(0)
+})
+
+test('a part lasts from its dispatch to its report, or to now while it runs again', async () => {
+  const at = Date.parse('2026-10-20T14:30:00Z')
+  const done = { n: 1, title: 'a', status: 'done', startedAt: '2026-10-20T13:42:00Z', finishedAt: '2026-10-20T13:51:00Z' }
+  expect(partDuration(done, at)).toBe(9 * 60_000)
+  expect(partDuration({ ...done, status: 'running' }, at)).toBe(48 * 60_000)
+  expect(partDuration({ n: 2, title: 'b', status: 'pending' }, at)).toBeUndefined()
 })
 
 test('follow-ups asked for after the summary show up as steps of finish', async () => {

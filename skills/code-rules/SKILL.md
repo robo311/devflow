@@ -17,7 +17,7 @@ When sources disagree, the higher one wins:
 
 ## Applying the rules
 
-Apply a rule where its subject exists in the task. When a rule's area does not exist in the project (no public pages for SEO rules, no i18n, no queue), skip it and say so in one line of the report, so the skip is visible rather than silent.
+Apply a rule where its subject exists in the task; the rest do not apply.
 
 ## Architecture
 
@@ -70,7 +70,3 @@ Apply a rule where its subject exists in the task. When a rule's area does not e
 - Test behaviour through the public interface, derived from the acceptance criteria. Follow the project's test conventions and location.
 - A new test fails before the change and passes after it; run it red first when the change makes that feasible.
 - Mock only at boundaries the project already mocks (network, time, external services), never the unit under test.
-
-## Verification
-
-Run the project checks that cover the change (tests, lint, type check, schema or spec validation) and keep their real output for the report. Work is done when they pass, or when the report says exactly which ones fail and why.

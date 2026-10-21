@@ -1,4 +1,13 @@
-export type FlowPart = { n: number; title: string; layer?: string; agent?: string; status: string }
+export type FlowPart = {
+  n: number
+  title: string
+  layer?: string
+  agent?: string
+  status: string
+  /** When its implementer was dispatched and when its report came back (ISO). */
+  startedAt?: string
+  finishedAt?: string
+}
 
 /** A fix or addition the developer asked for after the summary; `moved` went to a task of its own. */
 export type FlowFollowUp = { n: number; ask: string; status: 'working' | 'done' | 'moved' | string }
@@ -22,6 +31,12 @@ export type FlowState = {
   /** Phases deliberately left out, such as `review` for a task that changed no code. */
   skipped?: string[]
   updatedAt?: string
+  /** When each phase began (ISO), `done` included, so the time each took can be read back. */
+  phaseStarts?: Record<string, string>
+  /** When the open wait for the developer began (ISO), while `waitingFor` is set. */
+  waitingSince?: string | null
+  /** Seconds each phase spent waiting for the developer. */
+  waited?: Record<string, number>
   parts?: FlowPart[]
   followUps?: FlowFollowUp[]
   checks?: Record<string, string>
@@ -80,6 +95,8 @@ declare module 'claude-code' {
       main: { isWorking: boolean; isAsking: boolean; turnStartedAt?: number; turnEndedAt?: number }
       /** The task folders (`.flow/<slug>`, `.flow/reviews/<ts>`) this session's tool calls touched: the only tasks it shows. */
       tasks: string[]
+      /** devflow's own version, from its plugin.json, so a stale install shows. */
+      version: string | null
     }
   }
 }

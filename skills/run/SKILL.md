@@ -75,5 +75,5 @@ Once the summary is shown, the developer may ask for a fix or something new befo
    - **Bigger, inside the task**: an implementer with a brief at `agents/implementer-<n>-brief.md`, numbered on from the last one, as the `implement` skill does.
    - **New work beyond the task** (a feature of its own, another area): say so, set its status to `moved`, and offer to start it as a new task with `/devflow:run`. Build nothing for it here.
 3. Run the project checks that cover the change, then set its status to `done`.
-4. Add it to `summary.md` and `changelog.md` under **Follow-ups**, marked not reviewed: the review ran before it. Add a check for it under "Read these" in `review-guide.md`, unticked, as the guide's format describes.
+4. Add it to `summary.md` and `changelog.md` under **Follow-ups**, marked not reviewed: the review ran before it. Add a check for it under "Read" in `review-guide.md`, unticked, as the guide's format describes.
 5. Go back to where the run was: the finishing steps or the clean-up question. When the follow-ups changed more than a few lines, recommend a review of them (`/devflow:review`) before the task is called done.

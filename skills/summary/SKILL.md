@@ -20,7 +20,7 @@ Read `.flow/<slug>/plan.md`, `review.md`, every `agents/implementer-<n>-report.m
 
 ## 2. Review guide
 
-Write `.flow/<slug>/review-guide.md` as `${CLAUDE_PLUGIN_ROOT}/skills/summary/references/review-guide.md` describes: what to check and why, most important first, with a lesson where there is a real idea behind a check.
+Write `.flow/<slug>/review-guide.md` as `${CLAUDE_PLUGIN_ROOT}/skills/summary/references/review-guide.md` describes: only what matters for the task, most important first.
 
 ## 3. Summary
 
@@ -81,4 +81,4 @@ Show it in the conversation after the summary, under one line saying it is ready
 
 ## 5. Point to the review guide
 
-End with the review guide, so the developer's next step is their own review: its path, how many checks and minutes, and the questions under "Read these", one line each. Ask them to work through the file and tick the boxes before calling the task done. Do not paste the whole guide.
+End with the review guide, so the developer's next step is their own review: its path, how many checks and minutes, and the questions under "Read", one line each. Ask them to work through the file and tick the boxes before calling the task done. Do not paste the whole guide.

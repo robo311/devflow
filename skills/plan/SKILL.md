@@ -20,6 +20,8 @@ Learn what the request and the project already settle before asking anything.
 
 First, so the live view shows the task from its start: pick `<slug>`, a short kebab-case name for the task, create `.flow/<slug>/` with the layout `${CLAUDE_PLUGIN_ROOT}/skills/run/references/state.md` describes, make sure `.flow/` is listed in `.git/info/exclude` (add it when missing), and write `agents/state.json` with `title`, `phase: plan` and `step: ground`.
 
+When the task points to an analysis from `devflow:analyze` (`.flow/<slug>/analysis.md`), use its slug and read it first: its **For developers** findings are where grounding starts (re-check the ones the plan rests on), its **Decisions needed** go into step 3 unless already answered, and its recommended option is the approach unless the developer chose another.
+
 1. Read the project's own guidance: `CLAUDE.md` / `AGENTS.md` (root and the areas the task touches), `REVIEW.md`, README, and `docs/` files related to the task.
 2. Find the facts the plan rests on: where the affected code lives, how similar features are built, which contracts, schemas, specs and tests are involved. Facts are your job, never the developer's. For anything beyond a few direct lookups, dispatch `devflow:explorer` with concrete questions, several in parallel for separate areas, and keep their summaries.
 
@@ -91,7 +93,7 @@ When the plan puts every part on Opus, the two Implement options are the same: o
 
 `full`: nothing gets built before approval. Building includes writing product code, scaffolding, installing dependencies and running generators. Reading and exploring are fine.
 
-Done when the developer chose an Implement option or Keep it for later. Add `Status: approved` under the plan's title, and under it the build choice: `Build: sonnet + opus` or `Build: opus` (none for Keep it for later; `implement` asks then). Set `waitingFor` back to `null` in `state.json`.
+Done when the developer chose an Implement option or Keep it for later. Add `Status: approved` under the plan's title, and under it the build choice: `Build: sonnet + opus` or `Build: opus` (none for Keep it for later; `implement` asks then). Clear `waitingFor` in `state.json` as `state.md` describes, adding the wait to `waited`.
 
 ## 8. Hand off
 

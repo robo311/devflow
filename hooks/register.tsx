@@ -19,12 +19,17 @@ import {
   loadColor,
   mainStatus,
   nextPhase,
+  partDuration,
+  phaseDuration,
   phaseMark,
+  phaseWaiting,
   roleColor,
   roleOf,
   scaled,
   stepHint,
   stepLabel,
+  taskDuration,
+  taskWaiting,
   tokens,
   windowLabel,
   type Cell,
@@ -42,6 +47,7 @@ const now = atom({ plugin: 'devflow', key: 'now' } as const, 0)
 const session = atom({ plugin: 'devflow', key: 'session' } as const, null)
 const main = atom({ plugin: 'devflow', key: 'main' } as const, { isWorking: false, isAsking: false })
 const tasks = atom({ plugin: 'devflow', key: 'tasks' } as const, [])
+const version = atom({ plugin: 'devflow', key: 'version' } as const, null)
 
 const SEVERITIES = ['critical', 'high', 'medium', 'low'] as const
 // the band sits right under Claude's own orange spinner, so devflow draws in colours of its own
@@ -202,6 +208,13 @@ export const register: Register = (on, options) => {
       description: 'Open the devflow panel: session, agents and the current devflow task',
       immediate: true,
     })
+    const manifest = await $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`).catch(() => '')
+    try {
+      const found = (JSON.parse(manifest) as { version?: unknown }).version
+      if (typeof found === 'string') await update($, version, () => found)
+    } catch {
+      // no readable manifest: the panel goes without a version
+    }
     $.clock.every(POLL_MS, () => void poll($))
     $.clock.every(NARRATE_MS, () => void narrate($))
     await poll($)
@@ -490,6 +503,7 @@ export const register: Register = (on, options) => {
     }
 
     const info = await read($, session)
+    const ownVersion = await read($, version)
     const meter = (key: string, label: string, percent: number, note: string) => (
       <Box>
         <Text dimColor>{` ${label.padEnd(8)}`}</Text>
@@ -504,7 +518,7 @@ export const register: Register = (on, options) => {
     }
     const sessionBlock = info && (
       <Box flexDirection="column">
-        {heading('Session', info.startedAt ? ago(at - info.startedAt) : undefined)}
+        {heading('Session', [ownVersion && `devflow ${ownVersion}`, info.startedAt ? ago(at - info.startedAt) : ''].filter(Boolean).join(' · ') || undefined)}
         <Text wrap="truncate-end">
           <Text dimColor>{' model   '}</Text>
           <Text bold>{info.model ?? 'unknown'}</Text>
@@ -557,6 +571,8 @@ export const register: Register = (on, options) => {
     const openPaths = new Set(findings.filter(f => f.status !== 'fixed').map(f => (f.path ?? '').split(':')[0]))
     const shown = list.slice(-8)
     const from = timelineStart(shown)
+    const taskTime = taskDuration(s, at)
+    const waitedTime = taskWaiting(s, at)
 
     return (
       <Box flexDirection="column" gap={1}>
@@ -606,12 +622,13 @@ export const register: Register = (on, options) => {
         {sessionBlock}
 
         <Box flexDirection="column">
-          {heading('Flow')}
+          {heading('Flow', taskTime === undefined ? undefined : [`${ago(taskTime)} total`, waitedTime > 0 ? `${ago(waitedTime)} waiting` : ''].filter(Boolean).join(' · '))}
           {PHASES.map((phase, i) => {
             const mark = phaseMark(s, phase)
             const steps = mark === 'current' ? currentSteps(s) : []
             const nextMark = i < PHASES.length - 1 ? phaseMark(s, PHASES[i + 1]!) : 'pending'
-            const detail =
+            const took = phaseDuration(s, phase, at)
+            const status =
               mark === 'skipped'
                 ? 'skipped'
                 : mark === 'current' && stopped
@@ -623,6 +640,8 @@ export const register: Register = (on, options) => {
                       : phase === 'finish' && (s.followUps ?? []).length > 0
                         ? `${(s.followUps ?? []).filter(item => item.status !== 'working').length}/${(s.followUps ?? []).length} follow-ups`
                         : ''
+            const waited = phaseWaiting(s, phase, at)
+            const detail = [status, took === undefined ? '' : ago(took), waited > 0 ? `${ago(waited)} waiting` : ''].filter(Boolean).join(' · ')
             const currentColor = stopped ? 'warning' : 'claude'
             return (
               <Box flexDirection="column">
@@ -676,13 +695,14 @@ export const register: Register = (on, options) => {
             {heading('Parts')}
             {(s.parts ?? []).map(part => {
               const color = PART_COLOR[part.status] ?? 'claude'
+              const took = partDuration(part, at)
               return (
                 <Text wrap="truncate-end">
                   <Text color={color} bold>
                     {` ${PART_GLYPH[part.status] ?? '▸'} `}
                   </Text>
                   <Text>{`${part.n}. ${part.title}`}</Text>
-                  <Text dimColor>{`  ${[part.layer, part.agent].filter(Boolean).join(' · ')}`}</Text>
+                  <Text dimColor>{`  ${[part.layer, part.agent, took === undefined ? '' : ago(took)].filter(Boolean).join(' · ')}`}</Text>
                 </Text>
               )
             })}

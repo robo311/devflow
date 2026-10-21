@@ -5,7 +5,7 @@ description: Rules for backend code: input validation, authorization, transactio
 
 # Backend rules
 
-These add to `code-rules` for server-side code, under the same priority: the developer's instructions and the plan first, then the project's docs (`CLAUDE.md`, `AGENTS.md`, `docs/`), then its existing backend code and conventions, then these rules. Apply each rule where its subject exists; when its area does not exist in the project (no database, no queue, no public API), skip it and name the skip in the report.
+These add to `code-rules` for server-side code, under the same priority: the developer's instructions and the plan first, then the project's docs (`CLAUDE.md`, `AGENTS.md`, `docs/`), then its existing backend code and conventions, then these rules. Apply each rule where its subject exists in the task.
 
 ## Architecture and language
 

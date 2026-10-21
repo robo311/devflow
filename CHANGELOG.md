@@ -2,6 +2,14 @@
 
 All notable changes to devflow. Versions follow the `version` in `.claude-plugin/plugin.json`; Claude Code offers an update when it changes.
 
+## 0.2.4
+
+- New `analyze` skill: `/devflow:analyze <task or idea>` checks whether something can be done in the project, what it needs, what it would affect (including jobs, reports, exports and outside systems) and the options with their trade-offs, before anyone decides to build it. It writes `.flow/<slug>/analysis.md` in plain language for non-technical readers, with the evidence in a closing **For developers** section, and changes no code. It runs on its own: `run` never calls it, and it writes no `state.json`. `plan` picks up an analysis the task points to, reusing its slug, findings, open decisions and recommended option.
+- Faster implementers: the implementer guide is an outline of what a finished part needs rather than a step-by-step script. Implementers build on the brief's checked facts instead of re-verifying them, run the new tests once to see them fail and the full checks once at the end (fixing until they pass), treat existing tests as the proof for behaviour-preserving refactors, and may script edits that repeat across many files. The rules no longer ask for a report line per rule area that doesn't apply, and report suggestions are kept to what a reviewer should hear, so most parts have none. Integrate runs only when more than one implementer built the change.
+- `state.json` records when each phase started (`phaseStarts`) and when each part's implementer was dispatched and reported back (`startedAt`, `finishedAt`), so a finished task shows where its time went. It also records how long each phase waited for you (`waitingSince`, `waited`). The live panel shows them: the task's total time and waiting time in the **Flow** heading, the time and waiting time beside each phase, and the time beside each part.
+- The live panel shows devflow's own version in the **Session** heading, so an out-of-date install is visible at a glance.
+- Shorter review guide: only what matters for the task (acceptance criteria, changed behaviour, risk paths it touches, decisions taken for you), three to six boxes, each a question, its `path:line` and one "If wrong" line. Sections are now **Read** and **Confirm**, with an optional **Worth knowing** at the end in place of a lesson per check.
+
 ## 0.2.3
 
 - Live view: the plan's sub-steps now follow the work. The plan skill writes `step` at the start of every step, so "questions" no longer stays highlighted while the plan is written and checked; a new **write plan** step shows the writing, and a `light` plan, which has no builder check, no longer shows one.

@@ -6,6 +6,7 @@ Every task lives in `.flow/<slug>/` (a standalone review in `.flow/reviews/<YYYY
 
 ```
 .flow/<slug>/
+  analysis.md      the analysis from devflow:analyze, when the task started from one
   plan.md          the approved plan, its tasks ticked as they are built
   review.md        the review report
   summary.md       what changed, for the developer
@@ -34,10 +35,13 @@ Never put a working file at the top, and never put a file the developer is meant
   "phase": "review",
   "step": "verify",
   "waitingFor": null,
+  "waitingSince": null,
+  "waited": { "plan": 480, "review": 95 },
   "skipped": [],
   "updatedAt": "2026-10-20T14:03:00Z",
+  "phaseStarts": { "plan": "2026-10-20T13:20:00Z", "implement": "2026-10-20T13:41:00Z", "review": "2026-10-20T13:58:00Z" },
   "parts": [
-    { "n": 1, "title": "Order status endpoint", "layer": "be", "agent": "implementer-be", "model": "sonnet", "status": "done" }
+    { "n": 1, "title": "Order status endpoint", "layer": "be", "agent": "implementer-be", "model": "sonnet", "status": "done", "startedAt": "2026-10-20T13:42:00Z", "finishedAt": "2026-10-20T13:51:00Z" }
   ],
   "checks": { "npm test": "pass", "npm run lint": "skipped: no lint script" },
   "assumptions": ["backend returns 401, not 403"],
@@ -54,10 +58,13 @@ Never put a working file at the top, and never put a file the developer is meant
 Values:
 - `phase`: `plan` · `implement` · `review` · `summary` · `finish` · `done`
 - `step`: the step inside the phase, as the skill names it (`ground`, `decide`, `write`, `builder-check`, `approve`; `part 2`, `integrate`; `packet`, `find`, `verify`, `fix`, `round-2`, `report`; `follow-up 1`)
-- `waitingFor`: `null` while working; otherwise a few words on what the developer must do (`plan approval`, `decision on F1, F3`, `answer for part 2`). Set it just before you ask, and back to `null` as the first thing you do after the developer answers.
+- `waitingFor`: `null` while working; otherwise a few words on what the developer must do (`plan approval`, `decision on F1, F3`, `answer for part 2`). Set it just before you ask, with `waitingSince` set to the current time, and back to `null` as the first thing you do after the developer answers.
+- `waited`: seconds each phase spent waiting for the developer. When you clear `waitingFor`, add the seconds since `waitingSince` to the current phase's entry and set `waitingSince` back to `null`.
 - `skipped`: phases left out on purpose, with the reason said in the conversation and the summary (`["review"]` for a task that changed no code)
 - part `model`: the model its implementer runs on, `sonnet` or `opus`, as the developer's build choice and the plan assign it
 - part `status`: `pending` · `running` · `done` · `blocked` · `partial`
+- `phaseStarts`: when each phase began, kept as phases pass (`done` included), so the time each took can be read back; a phase entered again keeps its first time
+- part `startedAt` / `finishedAt`: when its implementer run was dispatched and when its report came back; a re-dispatch keeps `startedAt` and moves `finishedAt`
 - `followUps`: fixes or additions the developer asked for after the summary, each `{ "n": 1, "ask": "<a few words>", "status": "working" }`; `status` is `working` · `done` · `moved` (it became a task of its own)
 - finding `status`: `open` · `fixed` · `kept` (the developer chose to leave it)
 
@@ -68,4 +75,4 @@ Values:
 - **review**: each step start; after verification (funnel counts); each decision asked and answered; report written.
 - **summary / finish**: phase start; each follow-up started and finished; `phase: done` at the end.
 
-Write `updatedAt` on every update. Fields that do not apply yet are left out.
+Write `updatedAt` on every update, and every time from `date -u +%Y-%m-%dT%H:%M:%SZ`, not from memory. Fields that do not apply yet are left out.

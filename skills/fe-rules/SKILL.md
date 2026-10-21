@@ -5,7 +5,7 @@ description: Rules for frontend code: design, state and data flow, loading/error
 
 # Frontend rules
 
-These add to `code-rules` for UI code, under the same priority: the developer's instructions and the plan first, then the project's docs (`CLAUDE.md`, `AGENTS.md`, `docs/`), then its existing frontend code and conventions, then these rules. Apply each rule where its subject exists; when its area does not exist in the project (no public pages, no i18n, no forms), skip it and name the skip in the report.
+These add to `code-rules` for UI code, under the same priority: the developer's instructions and the plan first, then the project's docs (`CLAUDE.md`, `AGENTS.md`, `docs/`), then its existing frontend code and conventions, then these rules. Apply each rule where its subject exists in the task.
 
 ## Design
 

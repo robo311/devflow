@@ -98,6 +98,32 @@ test('pane and band draw a task on every surface', async ($, on) => {
   }
 })
 
+test('the pane shows how long the task, each phase and each part took', async ($, on) => {
+  const state = {
+    ...SAMPLE.state,
+    phaseStarts: { plan: '1970-01-01T00:00:00Z', implement: '1970-01-01T00:00:20Z', review: '1970-01-01T00:00:40Z' },
+    parts: [{ ...SAMPLE.state.parts![0]!, startedAt: '1970-01-01T00:00:21Z', finishedAt: '1970-01-01T00:00:30Z' }],
+    waited: { plan: 8 },
+    waitingSince: '1970-01-01T00:00:56Z',
+  }
+  mock.clock(on, { now: 61_000 })
+  on('fs.stat', () => ({ value: { kind: 'file' as const, size: 100, mtimeMs: SAMPLE.mtimeMs, isLink: false } }))
+  on('fs.read', ($, e) => ({ value: e.path.endsWith('plugin.json') ? JSON.stringify({ name: 'devflow', version: '9.8.7' }) : JSON.stringify(state) }))
+  answerStartup(on)
+  await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/.flow/order-status/agents/state.json' })
+
+  const pane = await $.ui.mount({ plugin: 'devflow', surface: 'terminal', component: 'Pane', requestId: 'devflow', props: PANE_PROPS })
+  await pane.drawn()
+  expect(await pane.find({ text: /1m total · 13s waiting/ })).toBeDefined()
+  expect(await pane.find({ text: /approved · 20s · 8s waiting/ })).toBeDefined()
+  expect(await pane.find({ text: /review\s+21s · 5s waiting/ })).toBeDefined()
+  expect(await pane.find({ text: /devflow 9\.8\.7/ })).toBeDefined()
+  expect(await pane.find({ text: /1\/1 parts · 20s/ })).toBeDefined()
+  expect(await pane.find({ text: /implementer-be · 9s/ })).toBeDefined()
+  await pane.unmount()
+})
+
 test('the band says working, not waiting, while a turn runs after the answer', async ($, on) => {
   mock.clock(on, { now: 61_000 })
   on('fs.exists', ($, e) => ({ value: e.path.endsWith('.flow') }))

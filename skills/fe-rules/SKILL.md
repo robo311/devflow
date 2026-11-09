@@ -1,6 +1,6 @@
 ---
 name: fe-rules
-description: Rules for frontend code: design, state and data flow, loading/error/empty states, API types, components, forms, accessibility, SEO for public pages, client-side security and performance. Use when implementing or changing UI code, and when judging whether it follows them.
+description: Rules for frontend code: design, state and data flow, loading/error/empty states, API types, components, forms, accessibility, SEO for public pages, client-side security and performance. Use only inside devflow: when a devflow skill or implementer loads it; never pick it up on your own for code work outside devflow.
 ---
 
 # Frontend rules

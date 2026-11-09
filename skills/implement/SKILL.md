@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Build an approved devflow plan with implementer subagents sized to its parts, ticking off its tasks, then hand the result to review. Use when a plan in .flow/ is approved and the developer wants it built.
+description: Build an approved devflow plan from .flow/ with implementer subagents sized to its parts, ticking off its tasks, then hand the result to review. Use only when the developer explicitly asks for devflow (says "devflow" or runs `/devflow:implement`), or when another devflow skill hands over to it; never pick it up on your own for an ordinary request.
 argument-hint: "<slug> [--no-review]"
 ---
 

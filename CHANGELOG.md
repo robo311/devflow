@@ -2,6 +2,10 @@
 
 All notable changes to devflow. Versions follow the `version` in `.claude-plugin/plugin.json`; Claude Code offers an update when it changes.
 
+## 0.2.5
+
+- devflow's skills no longer start on their own. They run only when you name devflow ("use devflow to …", "review my changes with devflow") or use a `/devflow:` command; a plain "plan this" or "review my changes" is left to Claude's usual behaviour. devflow's own hand-offs (run → plan → implement → review → summary, and the rules its implementers load) work as before.
+
 ## 0.2.4
 
 - New `analyze` skill: `/devflow:analyze <task or idea>` checks whether something can be done in the project, what it needs, what it would affect (including jobs, reports, exports and outside systems) and the options with their trade-offs, before anyone decides to build it. It writes `.flow/<slug>/analysis.md` in plain language for non-technical readers, with the evidence in a closing **For developers** section, and changes no code. It runs on its own: `run` never calls it, and it writes no `state.json`. `plan` picks up an analysis the task points to, reusing its slug, findings, open decisions and recommended option.

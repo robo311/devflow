@@ -82,7 +82,7 @@ Open Claude Code in your project and describe what you want:
 /devflow:run add a status endpoint for orders
 ```
 
-Or just ask in plain words ("use devflow to …", "plan this", "review my changes"). The skills trigger on their own.
+Or ask in plain words, naming devflow ("use devflow to …", "plan this with devflow", "review my changes with devflow"). The skills never start on their own: without the word "devflow" or a `/devflow:` command, Claude works as it normally would.
 
 What happens next:
 

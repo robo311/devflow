@@ -1,6 +1,6 @@
 ---
 name: run
-description: Run a development task end to end: plan it with the developer, build it with subagents, review it, summarise it, and tidy up, scaled to the size and risk of the task. Use when the developer wants a feature, fix or change done, or says to use devflow.
+description: Run a development task end to end: plan it with the developer, build it with subagents, review it, summarise it, and tidy up, scaled to the size and risk of the task. Use only when the developer explicitly asks for devflow (says "devflow" or runs `/devflow:run`), or when another devflow skill hands over to it; never pick it up on your own for an ordinary request.
 argument-hint: "<task description> | --resume [<slug>]"
 ---
 

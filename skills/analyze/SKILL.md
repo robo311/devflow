@@ -1,6 +1,6 @@
 ---
 name: analyze
-description: Analyse whether a proposed task or idea can be done in this project, what it needs, what it would affect and the trade-offs, written so non-technical readers can follow it. Use when asked for a technical analysis, a feasibility check, an impact assessment or "can we do X / what would it take" before deciding to build it; not for planning or building it.
+description: Analyse whether a proposed task or idea can be done in this project, what it needs, what it would affect and the trade-offs, written so non-technical readers can follow it: a technical analysis, feasibility check or impact assessment before deciding to build it; not for planning or building it. Use only when the developer explicitly asks for devflow (says "devflow" or runs `/devflow:analyze`), or when another devflow skill hands over to it; never pick it up on your own for an ordinary request.
 argument-hint: "<task or idea>"
 ---
 

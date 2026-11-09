@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Turn a development task into an approved plan sized to the task, asking the developer only the decisions that change what gets built. Use before implementing a feature, fix or change, or when the developer asks to plan or design one.
+description: Turn a development task into an approved plan sized to the task, asking the developer only the decisions that change what gets built. Use only when the developer explicitly asks for devflow (says "devflow" or runs `/devflow:plan`), or when another devflow skill hands over to it; never pick it up on your own for an ordinary request.
 argument-hint: "<task description> [--tier trivial|light|full]"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: be-rules
-description: Rules for backend code: input validation, authorization, transactions, migrations, API contracts, errors and logging, queries, external calls, jobs. Use when implementing or changing server-side code, and when judging whether it follows them.
+description: Rules for backend code: input validation, authorization, transactions, migrations, API contracts, errors and logging, queries, external calls, jobs. Use only inside devflow: when a devflow skill or implementer loads it; never pick it up on your own for code work outside devflow.
 ---
 
 # Backend rules

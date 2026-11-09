@@ -1,6 +1,6 @@
 ---
 name: summary
-description: Summarise a finished devflow task for the developer (what changed and why, behaviour now, open review items and leftovers), write a review guide with only the spots worth a human check, and a plain-language changelog for whoever raised the task. Use when a devflow task's implementation and review are done.
+description: Summarise a finished devflow task for the developer (what changed and why, behaviour now, open review items and leftovers), write a review guide with only the spots worth a human check, and a plain-language changelog for whoever raised the task. Use only when the developer explicitly asks for devflow (says "devflow" or runs `/devflow:summary`), or when another devflow skill hands over to it; never pick it up on your own for an ordinary request.
 argument-hint: "<slug>"
 ---
 

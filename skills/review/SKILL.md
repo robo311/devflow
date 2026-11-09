@@ -1,6 +1,6 @@
 ---
 name: review
-description: Review code changes for real defects, verify each finding, fix the obvious ones and bring the rest to the developer. Use when reviewing uncommitted changes, a branch against its base, or a devflow task before it is called done.
+description: Review code changes (uncommitted work, a branch against its base, or a devflow task) for real defects, verify each finding, fix the obvious ones and bring the rest to the developer. Use only when the developer explicitly asks for devflow (says "devflow" or runs `/devflow:review`), or when another devflow skill hands over to it; never pick it up on your own for an ordinary request.
 argument-hint: "[base-ref] [--task <slug>] [--depth quick|standard|deep] [--report-only]"
 ---
 

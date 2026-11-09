@@ -1,6 +1,6 @@
 ---
 name: code-rules
-description: General rules for writing production code in any project: conventions, reuse, structure, comments, scope, errors, tests. Use when implementing or changing code, and when judging whether written code follows them.
+description: General rules for writing production code in any project: conventions, reuse, structure, comments, scope, errors, tests. Use only inside devflow: when a devflow skill or implementer loads it; never pick it up on your own for code work outside devflow.
 ---
 
 # Code rules
